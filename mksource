@@ -2,6 +2,7 @@
 
 use Getopt::Long;
 use Pod::Usage;
+use POSIX qw/strftime/;
 
 $TEMPLATE_DIR="/home/users/klinglec/etc";
 
@@ -13,6 +14,9 @@ my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
 my $A_TARGET_DIR= '.';
+
+my $V_YEAR=strftime("%Y", localtime());
+my $V_ISODATE=strftime("%Y-%m-%d", localtime());
 
 # {{{1 Argument evaluation
 
@@ -60,6 +64,8 @@ sub gen_source
   while (<SFILE>)
   {
     s/\@Target\@/$TARGET/g;
+    s/\@Year\@/$V_YEAR/g;
+    s/\@IsoDate\@/$V_ISODATE/g;
     print TFILE $_;
   }
 
