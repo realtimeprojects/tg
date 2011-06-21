@@ -9,7 +9,7 @@ $V_SOURCE="cpp";
 
 $SOURCE="$TEMPLATE_DIR/cpp.cpp";
 
-my $A_TEMPLATE_NAME = '';
+my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
 my $A_TARGET_DIR= '.';
@@ -37,7 +37,7 @@ pod2usage(2) if (!$TARGET);
            }
 );
 
-die("unknown template $A_TEMPLATE_NAME") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
+die("unknown template '$A_TEMPLATE_NAME'") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
 
 while (($source, $target) = each(%{$TEMPLATES{$A_TEMPLATE_NAME}}))
 {
@@ -82,7 +82,7 @@ mksource - generate source files from templates
 
 =head1 SYNOPSIS
 
-mksource <options> [TARGET]
+mksource <-t template=cpp> [TARGET]
 
 =head1 DESCRIPTION
 
