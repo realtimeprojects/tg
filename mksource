@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+use Getopt::Long;
+use Pod::Usage;
+
+$TEMPLATE_DIR="/home/users/klinglec/etc";
+
+$V_SOURCE="cpp";
+
+$SOURCE="$TEMPLATE_DIR/cpp.cpp";
+
+my $A_TEMPLATE_NAME = '';
+my $A_VERBOSE = '';
+my $A_HELP = '';
+my $A_TARGET_DIR= '.';
+
+# {{{1 Argument evaluation
+
+GetOptions(
+  'template|t=s' => \$A_TEMPLATE_NAME,
+  'help|h'       => \$A_HELP,
+  'verbose|v'    => \$A_VERBOSE,
+  'output|o'     => \$A_TARGET_DIR,
+  );
+
+$TARGET=shift @ARGV;
+pod2usage(1) if ($A_HELP);
+pod2usage(2) if (!$TARGET);
+
+# {{{1 Predefined templates
+
+%TEMPLATES=
+(
+  "cpp" => {
+             "cpp.cpp" => "\@TARGET\@.cpp",
+             "cpp.h"   => "\@TARGET\@.h",
+           }
+);
+
+die("unknown template $A_TEMPLATE_NAME") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
+
+while (($source, $target) = each(%{$TEMPLATES{$A_TEMPLATE_NAME}}))
+{
+  $target=~s/\@TARGET\@/$TARGET/g;
+  verbose("generating $target from $source...");
+  gen_source("$target", "$source");
+}
+
+# {{{1 FUNCTIONS
+
+# {{{2 gen_source(target, source) - generate target file from source
+sub gen_source
+{
+  my $target = shift @_;
+  my $source = shift @_;
+
+  die "target $A_TARGET_DIR/$target already exists" if (-e "$A_TARGET_DIR/$target");
+  open(SFILE, "$TEMPLATE_DIR/$source") || die "source file not found $source";
+  open(TFILE, ">$A_TARGET_DIR/$target") || die "could not open $A_TARGET_DIR/$target for writing";
+  while (<SFILE>)
+  {
+    s/\@Target\@/$TARGET/g;
+    print TFILE $_;
+  }
+
+  close(TFILE);
+  close(SFILE);
+}
+
+# {{{2 verbose(message) - prints out _message_ if verbose is activated
+sub verbose
+{
+  return if (!$A_VERBOSE);
+  print "@_\n";
+}
+
+__END__
+
+=head1 mksource
+
+mksource - generate source files from templates
+
+=head1 SYNOPSIS
+
+mksource <options> [TARGET]
+
+=head1 DESCRIPTION
+
+dskljf skjf s;fjdf 
