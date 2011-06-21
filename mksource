@@ -2,17 +2,37 @@
 
 use Getopt::Long;
 use Pod::Usage;
+use POSIX qw/strftime/;
 
-$TEMPLATE_DIR="/home/users/klinglec/etc";
+# {{{1 Predefined templates
 
-$V_SOURCE="cpp";
+%MKSOURCE_TEMPLATES=
+(
+  "cpp" => {
+             "cpp/cpp.cpp" => "\@TARGET\@.cpp",
+             "cpp/cpp.h"   => "\@TARGET\@.h",
+           },
+  "cppunit" =>
+           {
+             "cpp/cppunit.cpp" => "\@TARGET\@.cpp",
+             "cpp/cppunit.h"   => "\@TARGET\@.h",
+           },
+  "perl" =>
+           {
+             "perl/template.pl" => "\@TARGET\@.pl",
+           },
+);
 
-$SOURCE="$TEMPLATE_DIR/cpp.cpp";
-
-my $A_TEMPLATE_NAME = '';
+my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
-my $A_TARGET_DIR= '.';
+my $OUTDIR= '.';
+my $A_DEBUG='';
+
+
+my $V_YEAR=strftime("%Y", localtime());
+my $V_ISODATE=strftime("%Y-%m-%d", localtime());
+my $V_USER=$ENV{'LOGNAME'};
 
 # {{{1 Argument evaluation
 
@@ -20,26 +40,26 @@ GetOptions(
   'template|t=s' => \$A_TEMPLATE_NAME,
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
-  'output|o'     => \$A_TARGET_DIR,
+  'output|o=s'     => \$OUTDIR,
+  'user|u'       => \$V_USER,
+  'debug|d'      => \$A_DEBUG,
   );
 
 $TARGET=shift @ARGV;
 pod2usage(1) if ($A_HELP);
 pod2usage(2) if (!$TARGET);
 
-# {{{1 Predefined templates
+$V_SOURCE="cpp";
 
-%TEMPLATES=
-(
-  "cpp" => {
-             "cpp.cpp" => "\@TARGET\@.cpp",
-             "cpp.h"   => "\@TARGET\@.h",
-           }
-);
+my $TMPLDIR="";
 
-die("unknown template $A_TEMPLATE_NAME") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
+get_config();
 
-while (($source, $target) = each(%{$TEMPLATES{$A_TEMPLATE_NAME}}))
+my $TMPLDIR=get_mksource_template_dir();
+
+die("unknown template '$A_TEMPLATE_NAME'") if (!defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}));
+
+while (($source, $target) = each(%{$MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}}))
 {
   $target=~s/\@TARGET\@/$TARGET/g;
   verbose("generating $target from $source...");
@@ -54,17 +74,29 @@ sub gen_source
   my $target = shift @_;
   my $source = shift @_;
 
-  die "target $A_TARGET_DIR/$target already exists" if (-e "$A_TARGET_DIR/$target");
-  open(SFILE, "$TEMPLATE_DIR/$source") || die "source file not found $source";
-  open(TFILE, ">$A_TARGET_DIR/$target") || die "could not open $A_TARGET_DIR/$target for writing";
+  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target");
+  open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
+  open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
+
   while (<SFILE>)
   {
     s/\@Target\@/$TARGET/g;
+    s/\@Year\@/$V_YEAR/g;
+    s/\@IsoDate\@/$V_ISODATE/g;
+    s/\@User\@/$V_USER/g;
+    s/\@HeaderDir\@/$A_TARGET_DIR/g;
     print TFILE $_;
   }
 
   close(TFILE);
   close(SFILE);
+}
+
+# {{{2 debug(message) - prints out _message_ as debug message
+sub debug
+{
+  return if (!$A_DEBUG);
+  print "@_\n";
 }
 
 # {{{2 verbose(message) - prints out _message_ if verbose is activated
@@ -74,6 +106,80 @@ sub verbose
   print "@_\n";
 }
 
+# {{{2 error(message) - prints out the _message_ and terminates the script
+sub error
+{
+  print "ERROR: @_\n";
+  exit(1);
+}
+
+sub get_mksource_template_dir
+{
+  # first prioritz has a environment variable
+  return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
+
+  # next priority has a configuration entry
+  debug("checking template dir $TMPLDIR");
+  assert(defined($TMPLDIR));
+  if (-e "$TMPLDIR")
+  {
+     debug("$TMPLDIR does exist");
+     return $TMPLDIR;
+  }
+
+  # return the directory below if this directory exists
+  my $ret = "/usr/local/etc/mksource_templates";
+  debug("checking template dir $ret");
+  return $ret if (-d $ret);
+
+  # return the directory below if this directory exists
+  my $ret = "/etc/mksource_templates"; return $ret if (-d $ret);
+
+  error("no valid template directory TMPLDIR found");
+}
+
+=item get_config()
+    The get_config() function will return the %MKSOURCE_CONFIG
+    hash that contains als relevant configuration settings of mksource. 
+=cut
+sub get_config($)
+{
+    debug("reading configuration...");
+    if (-e "$ENV{HOME}/.mksourceconfig")
+    {
+        read_config("$ENV{HOME}/.mksourceconfig");
+        debug("TMPLDIR=$TMPLDIR");
+    }
+    else
+    {
+        debug(".mksourceconfig not found");
+    }
+}
+
+sub read_config($)
+{
+    my $p_file = shift;
+    debug("reading $p_file");
+    open(CFGFILE, $p_file);
+    while (<CFGFILE>)
+    {
+        debug("checking $_");
+        if (/TMPLDIR\s*=\s*(.*)/)
+        {
+            $TMPLDIR=$1;
+            debug("setting TMPLDIR to '$TMPLDIR' (source=$p_file)");
+        }
+    }
+}
+
+sub assert($)
+{
+    my $expression=shift;
+    if (! $expression)
+    {
+        error("ASSERT failed! '$expression'");
+    }
+}
 __END__
 
 =head1 mksource
@@ -84,6 +190,67 @@ mksource - generate source files from templates
 
 mksource <options> [TARGET]
 
+Options:
+
+  [TARGET]             Name of the target
+
+  --template _string_
+  -t _string_          Uses _string_ as template. This parameter is optional.
+                       mksource uses the default template (cpp) if it is not set.
+  --user _string_
+  -u _string_          Uses _string_ as user name replacement instead of the
+                       "LOGNAME" environment variable.
+  --verbose
+  -v                   Enables verbose output
+  
+  --debug
+  -d                   Enables debug output
+
+  --help
+  -h                   Shows this help
+
 =head1 DESCRIPTION
 
-dskljf skjf s;fjdf 
+Mksource allows you to generate ready-to-use text files from predefined templates. During generation of the files, mksource will automatically replace predefined placeholders in the template by actual values, e.g. mksource replaces every occurence of @Target@ in the template by the name of the target.
+
+Example:
+
+  mksource -t cpp MyClass
+
+generates the MyClass.cpp and MyClass.h files from it's template.
+
+Mksource will not overwrite existing files.
+
+=head2 Substitutions
+
+mksource replaces the following tags by concrete values:
+
+  @Target@    The target name (supplied as [TARGET] in command line)
+  @Year@      The current 4-digit year (e.g. 2011)
+  @IsoDate@   The current date in ISO8601 format (e.g. 2011-04-22)
+  @HeaderDir@ The relative directory to which the header file will be written
+  @User@      The user name (LOGNAME environment variable)
+
+=head2 Template locations
+
+The template directory is determined in the following order. On every step, mksource
+checks whether the referenced directory exists. If yes, mksource uses this directory
+as TMPLDIR. If not, the next step is executed:
+
+1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
+2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
+3. Use the directory ~/etc/mksource_templates.
+4. Use the directory /user/local/etc/mksource_directories
+5. Use the directory /etc/mksource_templates
+
+=head2 The ~/.mksourceconfig
+
+The ~/.mksourceconfig is read on every startup and may contain configuration settings.
+
+ # will read the templates from ~/.mksource_templates
+ TMPLDIR = ~/.mksource_templates
+
+=head2 Template configuration
+
+=head2 Output directories
+
