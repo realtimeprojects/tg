@@ -17,6 +17,7 @@ my $A_TARGET_DIR= '.';
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
+my $V_USER=$ENV{'LOGNAME'};
 
 # {{{1 Argument evaluation
 
@@ -25,6 +26,7 @@ GetOptions(
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
   'output|o'     => \$A_TARGET_DIR,
+  'user|u'       => \$V_USER,
   );
 
 $TARGET=shift @ARGV;
@@ -66,6 +68,7 @@ sub gen_source
     s/\@Target\@/$TARGET/g;
     s/\@Year\@/$V_YEAR/g;
     s/\@IsoDate\@/$V_ISODATE/g;
+    s/\@User\@/$V_USER/g;
     print TFILE $_;
   }
 
@@ -88,7 +91,21 @@ mksource - generate source files from templates
 
 =head1 SYNOPSIS
 
-mksource <-t template=cpp> [TARGET]
+mksource <options> [TARGET]
+
+Options:
+
+  --template _string_
+  -t _string_         Uses _string_ as template. This parameter is optional.
+                       mksource uses the default template (cpp) if it is not set.
+  --user _string_
+  -u _string_          Uses _string_ as user name replacement instead of the
+                     "LOGNAME" environment variable.
+  --verbose
+  -v                 Enables verbose output
+
+  --help
+  -h                 Shows this help
 
 =head1 DESCRIPTION
 
