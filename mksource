@@ -101,18 +101,46 @@ mksource <options> [TARGET]
 
 Options:
 
+  [TARGET]             Name of the target
+
   --template _string_
-  -t _string_         Uses _string_ as template. This parameter is optional.
+  -t _string_          Uses _string_ as template. This parameter is optional.
                        mksource uses the default template (cpp) if it is not set.
   --user _string_
   -u _string_          Uses _string_ as user name replacement instead of the
-                     "LOGNAME" environment variable.
+                       "LOGNAME" environment variable.
   --verbose
-  -v                 Enables verbose output
+  -v                   Enables verbose output
 
   --help
-  -h                 Shows this help
+  -h                   Shows this help
 
 =head1 DESCRIPTION
 
-dskljf skjf s;fjdf 
+Mksource allows you to generate ready-to-use text files from predefined templates. During generation of the files, mksource will automatically replace predefined placeholders in the template by actual values, e.g. mksource replaces every occurence of @Target@ in the template by the name of the target.
+
+Example:
+
+  mksource -t cpp MyClass
+
+generates the MyClass.cpp and MyClass.h files from it's template.
+
+Mksource will not overwrite existing files.
+
+=head2 Substitutions
+
+mksource replaces the following tags by concrete values:
+
+  @Target@    The target name (supplied as [TARGET] in command line)
+  @Year@      The current 4-digit year (e.g. 2011)
+  @IsoDate@   The current date in ISO8601 format (e.g. 2011-04-22)
+  @HeaderDir@ The relative directory to which the header file will be written
+  @User@      The user name (LOGNAME environment variable)
+
+=head2 Template locations
+
+=head2 Template configuration
+
+=head2 Output directories
+
+
