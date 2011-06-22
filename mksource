@@ -4,16 +4,14 @@ use Getopt::Long;
 use Pod::Usage;
 use POSIX qw/strftime/;
 
-$TEMPLATE_DIR="/home/users/klinglec/etc/templates";
-
-$V_SOURCE="cpp";
-
-$SOURCE="$TEMPLATE_DIR/cpp.cpp";
-
 my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
 my $A_TARGET_DIR= '.';
+my $A_DEBUG='';
+
+my $V_TEMPLATE_DIR=get_mksource_template_dir();
+error("template directory $V_TEMPLATE_DIR does not exist") if (! -e $V_TEMPLATE_DIR);
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
@@ -27,11 +25,16 @@ GetOptions(
   'verbose|v'    => \$A_VERBOSE,
   'output|o'     => \$A_TARGET_DIR,
   'user|u'       => \$V_USER,
+  'debug|d'      => \$V_USER,
   );
 
 $TARGET=shift @ARGV;
 pod2usage(1) if ($A_HELP);
 pod2usage(2) if (!$TARGET);
+
+$V_SOURCE="cpp";
+
+$SOURCE="$TEMPLATE_DIR/cpp.cpp";
 
 # {{{1 Predefined templates
 
@@ -66,8 +69,9 @@ sub gen_source
   my $source = shift @_;
 
   die "target $A_TARGET_DIR/$target already exists" if (-e "$A_TARGET_DIR/$target");
-  open(SFILE, "$TEMPLATE_DIR/$source") || die "source file not found $source";
-  open(TFILE, ">$A_TARGET_DIR/$target") || die "could not open $A_TARGET_DIR/$target for writing";
+  open(SFILE, "$V_TEMPLATE_DIR/$source") || error("source file not found $V_TEMPLATE_DIR/$source");
+  open(TFILE, ">$A_TARGET_DIR/$target") || error("could not open $A_TARGET_DIR/$target for writing");
+
   while (<SFILE>)
   {
     s/\@Target\@/$TARGET/g;
@@ -82,11 +86,43 @@ sub gen_source
   close(SFILE);
 }
 
+# {{{2 debug(message) - prints out _message_ as debug message
+sub debug
+{
+  return if (!$A_DEBUG);
+  print "@_\n";
+}
+
 # {{{2 verbose(message) - prints out _message_ if verbose is activated
 sub verbose
 {
   return if (!$A_VERBOSE);
   print "@_\n";
+}
+
+# {{{2 error(message) - prints out the _message_ and terminates the script
+sub error
+{
+  print "ERROR: @_\n";
+  exit(1);
+}
+
+sub get_mksource_template_dir
+{
+  # this is the default location
+  my $ret = "/usr/local/etc/templates";
+
+  # if the environment variable is not set, return the default
+  # template location
+  return $ret if (!defined($ENV{"MKSOURCE_TEMPLATE_DIR"}));
+
+  # If the directory set in the environment variable does not exist,
+  #  return the default template location.
+  return $ret if (! -e $ENV{"MKSOURCE_TEMPLATE_DIR"});
+  debug("MKSOURCE_TEMPLATE_DIR=" . $ENV{"MKSOURCE_TEMPLATE_DIR"});
+
+  # return the template location, if exists
+  return $ENV{"MKSOURCE_TEMPLATE_DIR"};
 }
 
 __END__
@@ -111,6 +147,9 @@ Options:
                        "LOGNAME" environment variable.
   --verbose
   -v                   Enables verbose output
+  
+  --debug
+  -d                   Enables debug output
 
   --help
   -h                   Shows this help
@@ -138,6 +177,8 @@ mksource replaces the following tags by concrete values:
   @User@      The user name (LOGNAME environment variable)
 
 =head2 Template locations
+
+By default, mksource searches for the templates in the directory "/usr/local/etc/mksource_templates". This can be overwritten by setting the "MKSOURCE_TEMPLATE_DIR" environment variable.
 
 =head2 Template configuration
 
