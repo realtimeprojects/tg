@@ -69,6 +69,7 @@ sub gen_source
     s/\@Year\@/$V_YEAR/g;
     s/\@IsoDate\@/$V_ISODATE/g;
     s/\@User\@/$V_USER/g;
+    s/\@HeaderDir\@/$A_TARGET_DIR/g;
     print TFILE $_;
   }
 
