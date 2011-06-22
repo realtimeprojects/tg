@@ -40,7 +40,12 @@ pod2usage(2) if (!$TARGET);
   "cpp" => {
              "cpp.cpp" => "\@TARGET\@.cpp",
              "cpp.h"   => "\@TARGET\@.h",
-           }
+           },
+  "cppunit" =>
+           {
+             "cppunit.cpp" => "\@TARGET\@.cpp",
+             "cppunit.h"   => "\@TARGET\@.h",
+           },
 );
 
 die("unknown template '$A_TEMPLATE_NAME'") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
