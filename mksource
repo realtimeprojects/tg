@@ -4,14 +4,27 @@ use Getopt::Long;
 use Pod::Usage;
 use POSIX qw/strftime/;
 
+# {{{1 Predefined templates
+
+%MKSOURCE_TEMPLATES=
+(
+  "cpp" => {
+             "cpp/cpp.cpp" => "\@TARGET\@.cpp",
+             "cpp/cpp.h"   => "\@TARGET\@.h",
+           },
+  "cppunit" =>
+           {
+             "cpp/cppunit.cpp" => "\@TARGET\@.cpp",
+             "cpp/cppunit.h"   => "\@TARGET\@.h",
+           },
+);
+
 my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
 my $A_TARGET_DIR= '.';
 my $A_DEBUG='';
 
-my $V_TEMPLATE_DIR=get_mksource_template_dir();
-error("template directory $V_TEMPLATE_DIR does not exist") if (! -e $V_TEMPLATE_DIR);
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
@@ -25,7 +38,7 @@ GetOptions(
   'verbose|v'    => \$A_VERBOSE,
   'output|o'     => \$A_TARGET_DIR,
   'user|u'       => \$V_USER,
-  'debug|d'      => \$V_USER,
+  'debug|d'      => \$A_DEBUG,
   );
 
 $TARGET=shift @ARGV;
@@ -34,26 +47,15 @@ pod2usage(2) if (!$TARGET);
 
 $V_SOURCE="cpp";
 
-$SOURCE="$TEMPLATE_DIR/cpp.cpp";
+my $TMPLDIR="";
 
-# {{{1 Predefined templates
+get_config();
 
-%TEMPLATES=
-(
-  "cpp" => {
-             "cpp.cpp" => "\@TARGET\@.cpp",
-             "cpp.h"   => "\@TARGET\@.h",
-           },
-  "cppunit" =>
-           {
-             "cppunit.cpp" => "\@TARGET\@.cpp",
-             "cppunit.h"   => "\@TARGET\@.h",
-           },
-);
+my $TMPLDIR=get_mksource_template_dir();
 
-die("unknown template '$A_TEMPLATE_NAME'") if (!defined($TEMPLATES{$A_TEMPLATE_NAME}));
+die("unknown template '$A_TEMPLATE_NAME'") if (!defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}));
 
-while (($source, $target) = each(%{$TEMPLATES{$A_TEMPLATE_NAME}}))
+while (($source, $target) = each(%{$MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}}))
 {
   $target=~s/\@TARGET\@/$TARGET/g;
   verbose("generating $target from $source...");
@@ -69,7 +71,7 @@ sub gen_source
   my $source = shift @_;
 
   die "target $A_TARGET_DIR/$target already exists" if (-e "$A_TARGET_DIR/$target");
-  open(SFILE, "$V_TEMPLATE_DIR/$source") || error("source file not found $V_TEMPLATE_DIR/$source");
+  open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
   open(TFILE, ">$A_TARGET_DIR/$target") || error("could not open $A_TARGET_DIR/$target for writing");
 
   while (<SFILE>)
@@ -109,22 +111,71 @@ sub error
 
 sub get_mksource_template_dir
 {
-  # this is the default location
-  my $ret = "/usr/local/etc/templates";
+  # first prioritz has a environment variable
+  return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
 
-  # if the environment variable is not set, return the default
-  # template location
-  return $ret if (!defined($ENV{"MKSOURCE_TEMPLATE_DIR"}));
+  # next priority has a configuration entry
+  debug("checking template dir $TMPLDIR");
+  assert(defined($TMPLDIR));
+  if (-e "$TMPLDIR")
+  {
+     debug("$TMPLDIR does exist");
+     return $TMPLDIR;
+  }
 
-  # If the directory set in the environment variable does not exist,
-  #  return the default template location.
-  return $ret if (! -e $ENV{"MKSOURCE_TEMPLATE_DIR"});
-  debug("MKSOURCE_TEMPLATE_DIR=" . $ENV{"MKSOURCE_TEMPLATE_DIR"});
+  # return the directory below if this directory exists
+  my $ret = "/usr/local/etc/mksource_templates";
+  debug("checking template dir $ret");
+  return $ret if (-d $ret);
 
-  # return the template location, if exists
-  return $ENV{"MKSOURCE_TEMPLATE_DIR"};
+  # return the directory below if this directory exists
+  my $ret = "/etc/mksource_templates"; return $ret if (-d $ret);
+
+  error("no valid template directory TMPLDIR found");
 }
 
+=item get_config()
+    The get_config() function will return the %MKSOURCE_CONFIG
+    hash that contains als relevant configuration settings of mksource. 
+=cut
+sub get_config($)
+{
+    debug("reading configuration...");
+    if (-e "$ENV{HOME}/.mksourceconfig")
+    {
+        read_config("$ENV{HOME}/.mksourceconfig");
+        debug("TMPLDIR=$TMPLDIR");
+    }
+    else
+    {
+        debug(".mksourceconfig not found");
+    }
+}
+
+sub read_config($)
+{
+    my $p_file = shift;
+    debug("reading $p_file");
+    open(CFGFILE, $p_file);
+    while (<CFGFILE>)
+    {
+        debug("checking $_");
+        if (/TMPLDIR\s*=\s*(.*)/)
+        {
+            $TMPLDIR=$1;
+            debug("setting TMPLDIR to '$TMPLDIR' (source=$p_file)");
+        }
+    }
+}
+
+sub assert($)
+{
+    my $expression=shift;
+    if (! $expression)
+    {
+        error("ASSERT failed! '$expression'");
+    }
+}
 __END__
 
 =head1 mksource
@@ -183,5 +234,4 @@ By default, mksource searches for the templates in the directory "/usr/local/etc
 =head2 Template configuration
 
 =head2 Output directories
-
 
