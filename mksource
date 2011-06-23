@@ -53,7 +53,7 @@ my $A_DEBUG='';
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
-my $V_USER=$ENV{'LOGNAME'};
+my $USER=$ENV{'LOGNAME'};
 
 # {{{1 Argument evaluation
 
@@ -61,8 +61,8 @@ GetOptions(
   'template|t=s' => \$A_TEMPLATE_NAME,
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
-  'output|o=s'     => \$OUTDIR,
-  'user|u'       => \$V_USER,
+  'output|o=s'   => \$OUTDIR,
+  'user|u=s'     => \$USER,
   'debug|d'      => \$A_DEBUG,
   );
 
@@ -104,7 +104,7 @@ sub gen_source
     s/\@Target\@/$TARGET/g;
     s/\@Year\@/$V_YEAR/g;
     s/\@IsoDate\@/$V_ISODATE/g;
-    s/\@User\@/$V_USER/g;
+    s/\@User\@/$USER/g;
     s/\@HeaderDir\@/$A_TARGET_DIR/g;
     print TFILE $_;
   }

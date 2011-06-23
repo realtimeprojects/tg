@@ -53,6 +53,7 @@ function assert
 function cleanup
 {
     rm -f test/output/TestCreatePerlFile.pl;
+    rm -f test/output/TestCreateOverWrittenUserName.pl;
 }
 
 ### {{{2 function startup - prepare the tests
@@ -71,4 +72,6 @@ assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile.pl";
 assert "grep author test/output/TestCreatePerlFile.pl | grep -q $LOGNAME";
 assert "[ -e test/output/TestCreatePerlFile.pl ]";
 
-
+# test overwriting user name
+assert "$mksource -t perl -u overwritten_user_name -o test/output TestCreateOverWrittenUserName"
+assert "grep -q overwritten_user_name test/output/TestCreateOverWrittenUserName.pl";
