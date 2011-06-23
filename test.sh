@@ -54,6 +54,8 @@ function cleanup
 {
     rm -f test/output/TestCreatePerlFile.pl;
     rm -f test/output/TestCreateOverWrittenUserName.pl;
+    rm -f test/output/CppMultiple.cpp;
+    rm -f test/output/CppMultiple.h;
 }
 
 ### {{{2 function startup - prepare the tests
@@ -75,3 +77,10 @@ assert "[ -e test/output/TestCreatePerlFile.pl ]";
 # test overwriting user name
 assert "$mksource -t perl -u overwritten_user_name -o test/output TestCreateOverWrittenUserName"
 assert "grep -q overwritten_user_name test/output/TestCreateOverWrittenUserName.pl";
+
+# test multiple source without configuration
+assert "[ -e examples/templates/cpp/@Target@.cpp ]";
+assert "[ -e examples/templates/cpp/@Target@.h ]";
+assert "$mksource -t cpp -o test/output CppMultiple"
+assert "grep -q CppMultiple test/output/CppMultiple.cpp";
+assert "grep -q CppMultiple test/output/CppMultiple.h";

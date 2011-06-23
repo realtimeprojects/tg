@@ -27,22 +27,7 @@ use POSIX qw/strftime/;
 
 # {{{1 Predefined templates
 
-%MKSOURCE_TEMPLATES=
-(
-  "cpp" => {
-             "cpp/cpp.cpp" => "\@TARGET\@.cpp",
-             "cpp/cpp.h"   => "\@TARGET\@.h",
-           },
-  "cppunit" =>
-           {
-             "cpp/cppunit.cpp" => "\@TARGET\@.cpp",
-             "cpp/cppunit.h"   => "\@TARGET\@.h",
-           },
-  "perl" =>
-           {
-             "perl/template.pl" => "\@TARGET\@.pl",
-           },
-);
+%MKSOURCE_TEMPLATES=();
 
 my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
@@ -78,11 +63,35 @@ get_config();
 
 my $TMPLDIR=get_mksource_template_dir();
 
-die("unknown template '$A_TEMPLATE_NAME'") if (!defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}));
+# if no template configuration has been found, mksource
+# checks whether a $TMPLDIR/<template_name> subdirectory
+# exists containing template files to convert.
+#
+# mksource does the substitution on every template file name
+# itself and on the file content. I.e. a file named
+# perl/@Target@.pl in $TMPLDIR will be converted to TargetName.pl
+# in the output directory.
+if (!defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}))
+{
+    # check if directory name under $TMPLDIR exists    
+    error("no template definition found") if (!(-d "$TMPLDIR/$A_TEMPLATE_NAME"));
+
+    foreach $filename (<$TMPLDIR/$A_TEMPLATE_NAME/*>)
+    {
+        next if (-d $filename);
+        $tmplfile = $targetfile = $filename;
+        $tmplfile =~ s/$TMPLDIR\///;
+        $targetfile =~ s/$TMPLDIR\/$A_TEMPLATE_NAME//;
+        $MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}{$tmplfile}=$targetfile;
+    }
+    error ("no files found in $TMPLDIR!") if (! defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}));
+};
 
 while (($source, $target) = each(%{$MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}}))
 {
-  $target=~s/\@TARGET\@/$TARGET/g;
+  debug("target before: $target");
+  $target=do_substitution($target);
+  debug("target after: $target");
   verbose("generating $target from $source...");
   gen_source("$target", "$source");
 }
@@ -101,16 +110,23 @@ sub gen_source
 
   while (<SFILE>)
   {
-    s/\@Target\@/$TARGET/g;
-    s/\@Year\@/$V_YEAR/g;
-    s/\@IsoDate\@/$V_ISODATE/g;
-    s/\@User\@/$USER/g;
-    s/\@HeaderDir\@/$A_TARGET_DIR/g;
+    $_ = do_substitution($_);
     print TFILE $_;
   }
 
   close(TFILE);
   close(SFILE);
+}
+
+sub do_substitution
+{
+    my $what = shift;
+    $what =~ s/\@Target\@/$TARGET/g;
+    $what =~ s/\@Year\@/$V_YEAR/g;
+    $what =~ s/\@IsoDate\@/$V_ISODATE/g;
+    $what =~ s/\@User\@/$USER/g;
+    $what =~ s/\@HeaderDir\@/$A_TARGET_DIR/g;
+    return $what;
 }
 
 # {{{2 debug(message) - prints out _message_ as debug message
@@ -236,7 +252,7 @@ generates the MyClass.cpp and MyClass.h files from it's template.
 
 mksource will not overwrite existing files.
 
-=head2 Substitutions
+Substitutions:
 
 mksource replaces the following tags by concrete values:
 
@@ -246,26 +262,51 @@ mksource replaces the following tags by concrete values:
   @HeaderDir@ The relative directory to which the header file will be written
   @User@      The user name (LOGNAME environment variable)
 
-=head2 Template locations
+Template locations
 
 The template directory is determined in the following order. On every step, mksource
 checks whether the referenced directory exists. If yes, mksource uses this directory
 as TMPLDIR. If not, the next step is executed:
 
 1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
+
 2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
+
 3. Use the directory ~/etc/mksource_templates.
+
 4. Use the directory /user/local/etc/mksource_directories
+
 5. Use the directory /etc/mksource_templates
 
-=head2 The ~/.mksourceconfig
+The ~/.mksourceconfig
 
 The ~/.mksourceconfig is read on every startup and may contain configuration settings.
 
  # will read the templates from ~/.mksource_templates
  TMPLDIR = ~/.mksource_templates
 
-=head2 Template configuration
+Template configuration
 
-=head2 Output directories
+Mksource will try to find the $TMPLDIR/<template_name> directory and 
+create source files for each template file found in this directory. 
+  
+The file name of the template files are subsituted according the substitution 
+rules, i.e. a file named @Target@.cpp in the template directory will 
+result in a <target_name>.cpp file in the output directory. 
+
+Example:
+
+Assuming you have a ~/etc/mksource_templates directory containing
+
+    cpp/@Target@.cpp
+    cpp/@Target@.h
+
+templates file, mksource will generate
+
+    MyClass.cpp
+    MyClass.h
+
+files in the output directory.
+
+Output directories:
 
