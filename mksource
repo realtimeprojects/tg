@@ -74,7 +74,7 @@ sub gen_source
   my $target = shift @_;
   my $source = shift @_;
 
-  die "target $OUTDIR/$target already exists" if (-e "$OUTDIR/$target");
+  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target");
   open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
   open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
 
