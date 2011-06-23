@@ -17,6 +17,10 @@ use POSIX qw/strftime/;
              "cpp/cppunit.cpp" => "\@TARGET\@.cpp",
              "cpp/cppunit.h"   => "\@TARGET\@.h",
            },
+  "perl" =>
+           {
+             "perl/template.pl" => "\@TARGET\@.pl",
+           },
 );
 
 my $A_TEMPLATE_NAME = 'cpp';
@@ -229,7 +233,22 @@ mksource replaces the following tags by concrete values:
 
 =head2 Template locations
 
-By default, mksource searches for the templates in the directory "/usr/local/etc/mksource_templates". This can be overwritten by setting the "MKSOURCE_TEMPLATE_DIR" environment variable.
+The template directory is determined in the following order. On every step, mksource
+checks whether the referenced directory exists. If yes, mksource uses this directory
+as TMPLDIR. If not, the next step is executed:
+
+1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
+2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
+3. Use the directory ~/etc/mksource_templates.
+4. Use the directory /user/local/etc/mksource_directories
+5. Use the directory /etc/mksource_templates
+
+=head2 The ~/.mksourceconfig
+
+The ~/.mksourceconfig is read on every startup and may contain configuration settings.
+
+ # will read the templates from ~/.mksource_templates
+ TMPLDIR = ~/.mksource_templates
 
 =head2 Template configuration
 
