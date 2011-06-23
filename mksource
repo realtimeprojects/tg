@@ -26,7 +26,7 @@ use POSIX qw/strftime/;
 my $A_TEMPLATE_NAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
-my $A_TARGET_DIR= '.';
+my $OUTDIR= '.';
 my $A_DEBUG='';
 
 
@@ -40,7 +40,7 @@ GetOptions(
   'template|t=s' => \$A_TEMPLATE_NAME,
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
-  'output|o'     => \$A_TARGET_DIR,
+  'output|o=s'     => \$OUTDIR,
   'user|u'       => \$V_USER,
   'debug|d'      => \$A_DEBUG,
   );
@@ -74,9 +74,9 @@ sub gen_source
   my $target = shift @_;
   my $source = shift @_;
 
-  die "target $A_TARGET_DIR/$target already exists" if (-e "$A_TARGET_DIR/$target");
+  die "target $OUTDIR/$target already exists" if (-e "$OUTDIR/$target");
   open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
-  open(TFILE, ">$A_TARGET_DIR/$target") || error("could not open $A_TARGET_DIR/$target for writing");
+  open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
 
   while (<SFILE>)
   {
