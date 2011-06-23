@@ -43,9 +43,12 @@ function startup
 
 cleanup;
 startup;
+export MKSOURCE_TMPLDIR=./examples/templates
 
 assert "[ -d test/output ]";
 assert "$mksource -t perl -o test/output TestCreatePerlFile";
+assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile.pl";
+assert "grep author test/output/TestCreatePerlFile.pl | grep -q $LOGNAME";
 assert "[ -e test/output/TestCreatePerlFile.pl ]";
 
 
