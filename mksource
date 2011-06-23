@@ -161,7 +161,6 @@ sub get_mksource_template_dir
 
 # The get_config() function will return the %MKSOURCE_CONFIG
 # hash that contains als relevant configuration settings of mksource. 
-=cut
 sub get_config($)
 {
     debug("reading configuration...");
