@@ -47,6 +47,13 @@ function assert
     echo "OK";
 }
 
+### {{{2 function assert - check a condition and fail if it is not fulfilled
+function assert_false
+{
+    echo -n "checking (!) $1..."
+    eval $1 && fail "TEST FAILED..aborting!";
+    echo "OK";
+}
 ### {{{1 test helper functions
 
 ### {{{2 function cleanup - cleanup test environment
@@ -78,9 +85,16 @@ assert "[ -e test/output/TestCreatePerlFile.pl ]";
 assert "$mksource -t perl -u overwritten_user_name -o test/output TestCreateOverWrittenUserName"
 assert "grep -q overwritten_user_name test/output/TestCreateOverWrittenUserName.pl";
 
+# test force overwriting
+assert "$mksource -t perl -f -u YYY -o test/output TestCreatePerlFile";
+assert "grep -q YYY test/output/TestCreatePerlFile.pl";
+assert_false "$mksource -t perl -u ZZZ -o test/output TestCreatePerlFile >/dev/null";
+assert_false "grep -q ZZZ test/output/TestCreatePerlFile.pl";
+
 # test multiple source without configuration
 assert "[ -e examples/templates/cpp/@Target@.cpp ]";
 assert "[ -e examples/templates/cpp/@Target@.h ]";
 assert "$mksource -t cpp -o test/output CppMultiple"
 assert "grep -q CppMultiple test/output/CppMultiple.cpp";
 assert "grep -q CppMultiple test/output/CppMultiple.h";
+

@@ -34,6 +34,7 @@ my $A_VERBOSE = '';
 my $A_HELP = '';
 my $OUTDIR= '.';
 my $A_DEBUG='';
+my $A_FORCE_OVERWRITE='';
 
 
 my $V_YEAR=strftime("%Y", localtime());
@@ -49,6 +50,7 @@ GetOptions(
   'output|o=s'   => \$OUTDIR,
   'user|u=s'     => \$USER,
   'debug|d'      => \$A_DEBUG,
+  'force|f'      => \$A_FORCE_OVERWRITE,
   );
 
 $TARGET=shift @ARGV;
@@ -104,7 +106,7 @@ sub gen_source
   my $target = shift @_;
   my $source = shift @_;
 
-  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target");
+  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target" && !$A_FORCE_OVERWRITE);
   open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
   open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
 
@@ -233,6 +235,9 @@ mksource - generate source files from templates
   --user _string_
   -u _string_          Uses _string_ as user name replacement instead of the
                        "LOGNAME" environment variable.
+  --force
+  -f                   Overwrite existing files in output directory
+
   --verbose
   -v                   Enables verbose output
   
