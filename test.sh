@@ -101,3 +101,13 @@ assert "grep -q CppMultiple test/output/CppMultiple.h";
 # test list function for bash completion
 assert "$mksource --list | grep -q cpp"
 assert "$mksource --list | grep -q perl"
+
+# test the --show_args for bash completion
+assert "$mksource --show_args | grep -q show_args"; 
+assert "$mksource --show_args | grep -q force"; 
+assert "$mksource --show_args | grep -q template"; 
+assert "$mksource --show_args | grep -q user"; 
+assert "$mksource --show_args | grep -q output"; 
+assert "$mksource --show_args | grep -q help"; 
+assert "$mksource --show_args | grep -q verbose"; 
+assert "$mksource --show_args | grep -q debug"; 
