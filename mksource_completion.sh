@@ -6,8 +6,7 @@ _mksource_completion()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help --verbose --template --version"
-    tmpls="cpp perl cppunit"
+    opts="$(mksource --show_args)"
 
     case "${prev}" in
         --template)
