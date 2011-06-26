@@ -98,3 +98,6 @@ assert "$mksource -t cpp -o test/output CppMultiple"
 assert "grep -q CppMultiple test/output/CppMultiple.cpp";
 assert "grep -q CppMultiple test/output/CppMultiple.h";
 
+# test list function for bash completion
+assert "$mksource --list | grep -q cpp"
+assert "$mksource --list | grep -q perl"
