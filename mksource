@@ -35,13 +35,14 @@ my $OUTDIR = '.';
 my $A_DEBUG = '';
 my $A_FORCE_OVERWRITE = '';
 my $M_LIST = '';
+my $M_SHOWARGS = '';
 
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
 my $USER=$ENV{'LOGNAME'};
 
-GetOptions(
+my %argssettings = (
   'template|t=s' => \$TMPLNAME,
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
@@ -50,7 +51,10 @@ GetOptions(
   'debug|d'      => \$A_DEBUG,
   'force|f'      => \$A_FORCE_OVERWRITE,
   'list'         => \$M_LIST,
-  );
+  'show_args'    => \$M_SHOWARGS,
+);
+
+GetOptions(%argssettings);
 
 $V_SOURCE="cpp";
 
@@ -62,6 +66,17 @@ get_config();
 my $TMPLDIR=get_mksource_template_dir();
 
 debug("TMPLDIR is $TMPLDIR");
+
+if ($M_SHOWARGS)
+{
+    foreach my $argument ( keys %argssettings )
+    {
+        $argument =~ s/\|.*//;
+        print "--$argument ";
+    }
+    print "\n";
+    exit(0);
+}
 
 if ($M_LIST)
 {
@@ -319,6 +334,7 @@ generates the MyClass.cpp and MyClass.h files from it's template.
 mksource will not overwrite existing files.
 
 Substitutions:
+--------------
 
 mksource replaces the following tags by concrete values:
 
@@ -329,6 +345,7 @@ mksource replaces the following tags by concrete values:
   @User@      The user name (LOGNAME environment variable)
 
 Template locations
+------------------
 
 The template directory is determined in the following order. On every step, mksource
 checks whether the referenced directory exists. If yes, mksource uses this directory
@@ -345,6 +362,7 @@ as TMPLDIR. If not, the next step is executed:
 5. Use the directory /etc/mksource_templates
 
 The ~/.mksourceconfig
+---------------------
 
 The ~/.mksourceconfig is read on every startup and may contain configuration settings.
 
@@ -352,6 +370,7 @@ The ~/.mksourceconfig is read on every startup and may contain configuration set
  TMPLDIR = ~/.mksource_templates
 
 Template configuration
+----------------------
 
 Mksource will try to find the $TMPLDIR/<template_name> directory and 
 create source files for each template file found in this directory. 
@@ -374,5 +393,13 @@ templates file, mksource will generate
 
 files in the output directory.
 
-Output directories:
+Bash completion
+---------------
+
+Source the mksource_completion.sh in the mksource installation directory
+to activate bash completion. Ensure that mksource is in your $PATH directory.
+
+mksource will automatically complete all command line options. Furthermore,
+mksource will complete the --template argument with the list of available
+arguments. See mksource --list.
 
