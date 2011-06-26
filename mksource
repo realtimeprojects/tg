@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# {{{1 Header
 ###
 # mksource - generate text and code from templates
 #
@@ -25,71 +26,57 @@ use Getopt::Long;
 use Pod::Usage;
 use POSIX qw/strftime/;
 
-# {{{1 Predefined templates
+# {{{1 Argument evaluation
 
-%MKSOURCE_TEMPLATES=();
-
-my $A_TEMPLATE_NAME = 'cpp';
+my $TMPLNAME = 'cpp';
 my $A_VERBOSE = '';
 my $A_HELP = '';
-my $OUTDIR= '.';
-my $A_DEBUG='';
-my $A_FORCE_OVERWRITE='';
+my $OUTDIR = '.';
+my $A_DEBUG = '';
+my $A_FORCE_OVERWRITE = '';
+my $M_LIST = '';
 
 
 my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
 my $USER=$ENV{'LOGNAME'};
 
-# {{{1 Argument evaluation
-
 GetOptions(
-  'template|t=s' => \$A_TEMPLATE_NAME,
+  'template|t=s' => \$TMPLNAME,
   'help|h'       => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
   'output|o=s'   => \$OUTDIR,
   'user|u=s'     => \$USER,
   'debug|d'      => \$A_DEBUG,
   'force|f'      => \$A_FORCE_OVERWRITE,
+  'list'         => \$M_LIST,
   );
+
+$V_SOURCE="cpp";
+
+my $TMPLDIR="";
+get_config();
+
+# {{{1 Running mode
+
+my $TMPLDIR=get_mksource_template_dir();
+
+debug("TMPLDIR is $TMPLDIR");
+
+if ($M_LIST)
+{
+    @templates = list_templates();
+    print join(" ", @templates);
+    exit(0);
+}
 
 $TARGET=shift @ARGV;
 pod2usage(1) if ($A_HELP);
 pod2usage(2) if (!$TARGET);
 
-$V_SOURCE="cpp";
+my %mapping = get_file_mapping($TMPLDIR, $TMPLNAME);
 
-my $TMPLDIR="";
-
-get_config();
-
-my $TMPLDIR=get_mksource_template_dir();
-
-# if no template configuration has been found, mksource
-# checks whether a $TMPLDIR/<template_name> subdirectory
-# exists containing template files to convert.
-#
-# mksource does the substitution on every template file name
-# itself and on the file content. I.e. a file named
-# perl/@Target@.pl in $TMPLDIR will be converted to TargetName.pl
-# in the output directory.
-if (!defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}))
-{
-    # check if directory name under $TMPLDIR exists    
-    error("no template definition found") if (!(-d "$TMPLDIR/$A_TEMPLATE_NAME"));
-
-    foreach $filename (<$TMPLDIR/$A_TEMPLATE_NAME/*>)
-    {
-        next if (-d $filename);
-        $tmplfile = $targetfile = $filename;
-        $tmplfile =~ s/$TMPLDIR\///;
-        $targetfile =~ s/$TMPLDIR\/$A_TEMPLATE_NAME//;
-        $MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}{$tmplfile}=$targetfile;
-    }
-    error ("no files found in $TMPLDIR!") if (! defined($MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}));
-};
-
-while (($source, $target) = each(%{$MKSOURCE_TEMPLATES{$A_TEMPLATE_NAME}}))
+while (($source, $target) = each(%mapping))
 {
   debug("target before: $target");
   $target=do_substitution($target);
@@ -152,9 +139,10 @@ sub error
   exit(1);
 }
 
+# {{{2 get_mksource_template_dir
 sub get_mksource_template_dir
 {
-  # first prioritz has a environment variable
+  # first priority has a environment variable
   return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
 
   # next priority has a configuration entry
@@ -179,7 +167,8 @@ sub get_mksource_template_dir
 
 # The get_config() function will return the %MKSOURCE_CONFIG
 # hash that contains als relevant configuration settings of mksource. 
-sub get_config($)
+# {{{2 get_config()
+sub get_config
 {
     debug("reading configuration...");
     if (-e "$ENV{HOME}/.mksourceconfig")
@@ -193,6 +182,7 @@ sub get_config($)
     }
 }
 
+# {{{2 read_config($filename)
 sub read_config($)
 {
     my $p_file = shift;
@@ -209,6 +199,7 @@ sub read_config($)
     }
 }
 
+# {{{2 assert($expression) - aborts program if $expression is false
 sub assert($)
 {
     my $expression=shift;
@@ -217,6 +208,74 @@ sub assert($)
         error("ASSERT failed! '$expression'");
     }
 }
+
+# {{{1 work functions
+
+# Shows a list of all available templates.
+# {{{2 list_templates - list all available templatex
+sub list_templates 
+{
+    return list_templates_in_directory($TMPLDIR);
+}
+
+# {{{1 list_templates($directory) - find templates in $directory
+#
+# @returns undef if directory does not exist.
+sub list_templates_in_directory($)
+{
+    my $directory = shift;
+    my @templates = ();
+
+    debug("list_templates($directory)");
+
+    # check if directory name under $TMPLDIR exists    
+    return undef if (!(-d $directory));
+
+    foreach $filename (<$directory/*>)
+    {
+        next if (! -d $filename);
+        $filename=~s/$directory\///;
+        debug("found template $filename");
+        push(@templates, $filename);
+    }
+
+    return @templates;
+}
+
+
+# if no template configuration has been found, mksource
+# checks whether a $TMPLDIR/<template_name> subdirectory
+# exists containing template files to convert.
+#
+# mksource does the substitution on every template file name
+# itself and on the file content. I.e. a file named
+# perl/@Target@.pl in $TMPLDIR will be converted to TargetName.pl
+# in the output directory.
+# {{{1 get_file_mapping($template_dir, $template_directory)
+sub get_file_mapping ($$)
+{
+    my $template_dir = shift;
+    my $template_name = shift;
+    my %mapping;
+   
+    # check if directory name under $TMPLDIR exists    
+    error("no template definition found") if (!(-d "$template_dir/$template_name"));
+
+    foreach $filename (<$template_dir/$template_name/*>)
+    {
+        next if (-d $filename);
+        debug("found template file $filename");
+        $tmplfile = $targetfile = $filename;
+        $tmplfile =~ s/$template_dir\///;
+        $targetfile =~ s/$template_dir\/$template_name\///;
+        debug("adding template file $tmplfile with target $targetfile");
+        $mapping{$tmplfile} = $targetfile;
+    }
+    return %mapping;
+};
+
+# {{{1 Documentation
+
 __END__
 
 =head1 SYNOPSIS
@@ -246,6 +305,8 @@ mksource - generate source files from templates
 
   --help
   -h                   Shows this help
+
+  --list               List the available templates
 
 mksource allows you to generate ready-to-use text files from predefined templates. During generation of the files, mksource will automatically replace predefined placeholders in the template by actual values, e.g. mksource replaces every occurence of @Target@ in the template by the name of the target.
 

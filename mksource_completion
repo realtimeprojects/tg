@@ -11,7 +11,7 @@ _mksource_completion()
 
     case "${prev}" in
         --template)
-            tmpls=$(mksource --list-templates)
+            tmpls=$(mksource --list)
             COMPREPLY=( $(compgen -W "${tmpls}" -- ${cur}) )
             return 0
             ;;
