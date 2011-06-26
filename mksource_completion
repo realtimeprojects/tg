@@ -1,0 +1,27 @@
+#!/bin/bash
+
+_mksource_completion()
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--help --verbose --template --version"
+    tmpls="cpp perl cppunit"
+
+    case "${prev}" in
+        --template)
+            tmpls=$(mksource --list-templates)
+            COMPREPLY=( $(compgen -W "${tmpls}" -- ${cur}) )
+            return 0
+            ;;
+        esac
+
+    if [[ ${cur} == -* ]] ; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+}
+
+complete -F _mksource_completion mksource;
+
