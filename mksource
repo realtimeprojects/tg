@@ -42,9 +42,16 @@ my $V_YEAR=strftime("%Y", localtime());
 my $V_ISODATE=strftime("%Y-%m-%d", localtime());
 my $USER=$ENV{'LOGNAME'};
 
+my @TMPLDIRECTORIES = (
+ "$ENV{HOME}/mksource_templates",
+ "$ENV{HOME}/.mksourcetemplates",
+ "/usr/local/etc/mksource_templates",
+ "/etc/mksource_templates",
+);
+
 my %argssettings = (
   'template|t=s' => \$TMPLNAME,
-  'help|h'       => \$A_HELP,
+  'help|h|?'     => \$A_HELP,
   'verbose|v'    => \$A_VERBOSE,
   'output|o=s'   => \$OUTDIR,
   'user|u=s'     => \$USER,
@@ -62,6 +69,8 @@ my $TMPLDIR="";
 get_config();
 
 # {{{1 Running mode
+
+pod2usage(1) if ($A_HELP);
 
 my $TMPLDIR=get_mksource_template_dir();
 
@@ -86,7 +95,6 @@ if ($M_LIST)
 }
 
 $TARGET=shift @ARGV;
-pod2usage(1) if ($A_HELP);
 pod2usage(2) if (!$TARGET);
 
 my %mapping = get_file_mapping($TMPLDIR, $TMPLNAME);
@@ -157,27 +165,26 @@ sub error
 # {{{2 get_mksource_template_dir
 sub get_mksource_template_dir
 {
-  # first priority has a environment variable
-  return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
+	# first priority has a environment variable
+	return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
 
-  # next priority has a configuration entry
-  debug("checking template dir $TMPLDIR");
-  assert(defined($TMPLDIR));
-  if (-e "$TMPLDIR")
-  {
-     debug("$TMPLDIR does exist");
-     return $TMPLDIR;
-  }
+	# next priority has a configuration entry
+	debug("checking template dir $TMPLDIR");
 
-  # return the directory below if this directory exists
-  my $ret = "/usr/local/etc/mksource_templates";
-  debug("checking template dir $ret");
-  return $ret if (-d $ret);
+	if (defined($TMPLDIR) && -e "$TMPLDIR")
+	{
+		debug("$TMPLDIR does exist");
+		return $TMPLDIR;
+	}
 
-  # return the directory below if this directory exists
-  my $ret = "/etc/mksource_templates"; return $ret if (-d $ret);
+	# return the directory below if this directory exists
+	foreach $dir (@TMPLDIRECTORIES)
+	{
+		debug("checking template directory $dir");
+		return $dir if (-d $dir);
+	}
 
-  error("no valid template directory TMPLDIR found");
+	error("could not find template directory! see mksource --help for details");
 }
 
 # The get_config() function will return the %MKSOURCE_CONFIG
