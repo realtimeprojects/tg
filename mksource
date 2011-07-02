@@ -24,11 +24,12 @@
 
 use Getopt::Long;
 use Pod::Usage;
+use Switch;
 use POSIX qw/strftime/;
 
 # {{{1 Argument evaluation
 
-my $TMPLNAME = 'cpp';
+my $TMPLNAME = '';
 my $A_VERBOSE = '';
 my $A_HELP = '';
 my $OUTDIR = '.';
@@ -57,55 +58,91 @@ my %argssettings = (
   'user|u=s'     => \$USER,
   'debug|d'      => \$A_DEBUG,
   'force|f'      => \$A_FORCE_OVERWRITE,
-  'list'         => \$M_LIST,
-  'show_args'    => \$M_SHOWARGS,
 );
 
-GetOptions(%argssettings);
 
-$V_SOURCE="cpp";
+# {{{1 mksource interface functions
 
-my $TMPLDIR="";
-get_config();
-
-# {{{1 Running mode
-
-pod2usage(1) if ($A_HELP);
-
-my $TMPLDIR=get_mksource_template_dir();
-
-debug("TMPLDIR is $TMPLDIR");
-
-if ($M_SHOWARGS)
+# {{{2 mksource_init
+sub mksource_init()
 {
+    GetOptions(%argssettings);
+    $TMPLDIR="";
+
+    get_config();
+
+    $TMPLDIR=get_mksource_template_dir();
+    debug("TMPLDIR is $TMPLDIR");
+
+    $V_SOURCE="cpp";
+
+}
+
+# {{{2 mksource create <targetname> [using] <templatename>
+sub mksource_create()
+{
+    my $targetname = shift @ARGV;
+    my $template = shift @ARGV;
+    $template = $TMPLNAME if (! $template);
+
+    if ($template =~ /using/)
+    {
+       $template = shift @ARGV;
+       if ($TMPLNAME ne "")
+       {
+           error("ambigious -t in combination with using");
+           return 1;
+       }
+    }
+
+    verbose("mksource_create $targetname using $template");
+    my %mapping = get_file_mapping($TMPLDIR, $template);
+
+    while (($source, $target) = each(%mapping))
+    {
+        debug("target before: $target");
+        $target=do_substitution($target, $targetname);
+        debug("target after: $target");
+        verbose("generating $target from $source...");
+        gen_source("$target", "$source", $targetname);
+    }
+}
+
+sub mksource_showargs()
+{
+    print "create list help showargs using ";
     foreach my $argument ( keys %argssettings )
     {
         $argument =~ s/\|.*//;
         print "--$argument ";
     }
     print "\n";
+    
     exit(0);
 }
 
-if ($M_LIST)
+sub mksource_list()
 {
     @templates = list_templates();
     print join(" ", @templates);
     exit(0);
 }
 
-$TARGET=shift @ARGV;
-pod2usage(2) if (!$TARGET);
+mksource_init;
 
-my %mapping = get_file_mapping($TMPLDIR, $TMPLNAME);
+$COMMAND=shift @ARGV;
+$COMMAND="help" if ($A_HELP);
 
-while (($source, $target) = each(%mapping))
+debug("command is $COMMAND");
+
+switch ($COMMAND)
 {
-  debug("target before: $target");
-  $target=do_substitution($target);
-  debug("target after: $target");
-  verbose("generating $target from $source...");
-  gen_source("$target", "$source");
+    case /version/  { pod2usage(2) }
+    case /list/     { mksource_list }
+    case /create/   { mksource_create }
+    case /showargs/ { mksource_showargs }
+    case /help/     { pod2usage(1) }
+    else            { pod2usage(2) }
 }
 
 # {{{1 FUNCTIONS
@@ -113,8 +150,9 @@ while (($source, $target) = each(%mapping))
 # {{{2 gen_source(target, source) - generate target file from source
 sub gen_source
 {
-  my $target = shift @_;
-  my $source = shift @_;
+  my $target = shift;
+  my $source = shift;
+  my $targetname = shift;
 
   error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target" && !$A_FORCE_OVERWRITE);
   open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
@@ -122,7 +160,7 @@ sub gen_source
 
   while (<SFILE>)
   {
-    $_ = do_substitution($_);
+    $_ = do_substitution($_, $targetname);
     print TFILE $_;
   }
 
@@ -133,7 +171,8 @@ sub gen_source
 sub do_substitution
 {
     my $what = shift;
-    $what =~ s/\@Target\@/$TARGET/g;
+    my $target = shift;
+    $what =~ s/\@Target\@/$target/g;
     $what =~ s/\@Year\@/$V_YEAR/g;
     $what =~ s/\@IsoDate\@/$V_ISODATE/g;
     $what =~ s/\@User\@/$USER/g;
@@ -166,6 +205,7 @@ sub error
 sub get_mksource_template_dir
 {
 	# first priority has a environment variable
+    debug("MKSOURCE_TMPLDIR " . $ENV{"MKSOURCE_TMPLDIR"});
 	return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
 
 	# next priority has a configuration entry
@@ -302,9 +342,10 @@ __END__
 
 =head1 SYNOPSIS
 
-mksource <options> [TARGET]
+mksource v0.0.1- generate source files from templates
 
-mksource - generate source files from templates
+mksource <options> [CMD]
+
 
 =head1 OPTIONS
 
@@ -332,81 +373,83 @@ mksource - generate source files from templates
 
 mksource allows you to generate ready-to-use text files from predefined templates. During generation of the files, mksource will automatically replace predefined placeholders in the template by actual values, e.g. mksource replaces every occurence of @Target@ in the template by the name of the target.
 
-Example:
+Commands:
 
-  mksource -t cpp MyClass
+    create      create your text file from the template
 
-generates the MyClass.cpp and MyClass.h files from it's template.
+                Example:
 
-mksource will not overwrite existing files.
+                  mksource -t cpp create MyClass
+                  mksource create MyClass using cpp
+
+                This commands are identical and generate the MyClass.cpp and MyClass.h files from it's template.
+
+                mksource will not overwrite existing files. Force overwriting with the -t argument.
+   
+    list        list available templates
+
+    showargs    show a list of vailable arguments (for bash completion)
+
+    help        show this help
 
 Substitutions:
---------------
 
-mksource replaces the following tags by concrete values:
+    mksource replaces the following tags by concrete values:
 
-  @Target@    The target name (supplied as [TARGET] in command line)
-  @Year@      The current 4-digit year (e.g. 2011)
-  @IsoDate@   The current date in ISO8601 format (e.g. 2011-04-22)
-  @HeaderDir@ The relative directory to which the header file will be written
-  @User@      The user name (LOGNAME environment variable)
+      @Target@    The target name (supplied as [TARGET] in command line)
+      @Year@      The current 4-digit year (e.g. 2011)
+      @IsoDate@   The current date in ISO8601 format (e.g. 2011-04-22)
+      @HeaderDir@ The relative directory to which the header file will be written
+      @User@      The user name (LOGNAME environment variable)
 
-Template locations
-------------------
+Template locations:
 
-The template directory is determined in the following order. On every step, mksource
-checks whether the referenced directory exists. If yes, mksource uses this directory
-as TMPLDIR. If not, the next step is executed:
+    The template directory is determined in the following order. On every step, mksource
+    checks whether the referenced directory exists. If yes, mksource uses this directory
+    as TMPLDIR. If not, the next step is executed:
 
-1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
-
-2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
-
-3. Use the directory ~/etc/mksource_templates.
-
-4. Use the directory /user/local/etc/mksource_directories
-
-5. Use the directory /etc/mksource_templates
+    1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
+    2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
+    3. Use the directory ~/etc/mksource_templates.
+    4. Use the directory /user/local/etc/mksource_directories
+    5. Use the directory /etc/mksource_templates
 
 The ~/.mksourceconfig
----------------------
 
-The ~/.mksourceconfig is read on every startup and may contain configuration settings.
+    The ~/.mksourceconfig is read on every startup and may contain configuration settings.
 
- # will read the templates from ~/.mksource_templates
- TMPLDIR = ~/.mksource_templates
+     # will read the templates from ~/.mksource_templates
+     TMPLDIR = ~/.mksource_templates
 
-Template configuration
-----------------------
+Template configuration:
 
-Mksource will try to find the $TMPLDIR/<template_name> directory and 
-create source files for each template file found in this directory. 
-  
-The file name of the template files are subsituted according the substitution 
-rules, i.e. a file named @Target@.cpp in the template directory will 
-result in a <target_name>.cpp file in the output directory. 
+    Mksource will try to find the $TMPLDIR/<template_name> directory and 
+    create source files for each template file found in this directory. 
+      
+    The file name of the template files are subsituted according the substitution 
+    rules, i.e. a file named @Target@.cpp in the template directory will 
+    result in a <target_name>.cpp file in the output directory. 
 
-Example:
+    Example:
 
-Assuming you have a ~/etc/mksource_templates directory containing
+    Assuming you have a ~/etc/mksource_templates directory containing
 
-    cpp/@Target@.cpp
-    cpp/@Target@.h
+        cpp/@Target@.cpp
+        cpp/@Target@.h
 
-templates file, mksource will generate
+    templates file, mksource will generate
 
-    MyClass.cpp
-    MyClass.h
+        MyClass.cpp
+        MyClass.h
 
-files in the output directory.
+    files in the output directory.
 
-Bash completion
----------------
+Bash completion:
 
-Source the mksource_completion.sh in the mksource installation directory
-to activate bash completion. Ensure that mksource is in your $PATH directory.
+    Source the mksource_completion.sh in the mksource installation directory
+    to activate bash completion. Ensure that mksource is in your $PATH directory.
 
-mksource will automatically complete all command line options. Furthermore,
-mksource will complete the --template argument with the list of available
-arguments. See mksource --list.
+    mksource will automatically complete all command line options. Furthermore,
+    mksource will complete the --template argument with the list of available
+    arguments. See 'mksource list'.
 

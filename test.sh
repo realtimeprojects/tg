@@ -60,6 +60,7 @@ function assert_false
 function cleanup
 {
     rm -f test/output/TestCreatePerlFile.pl;
+    rm -f test/output/TestCreatePerlFile2.pl;
     rm -f test/output/TestCreateOverWrittenUserName.pl;
     rm -f test/output/CppMultiple.cpp;
     rm -f test/output/CppMultiple.h;
@@ -76,38 +77,47 @@ startup;
 export MKSOURCE_TMPLDIR=./examples/templates
 
 assert "[ -d test/output ]";
-assert "$mksource -t perl -o test/output TestCreatePerlFile";
+
+# test template creatin with "using"
+assert "$mksource -o test/output create TestCreatePerlFile using perl";
 assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile.pl";
 assert "grep author test/output/TestCreatePerlFile.pl | grep -q $LOGNAME";
 assert "[ -e test/output/TestCreatePerlFile.pl ]";
 
+# test template creation with -t
+assert "$mksource -o test/output -t perl create TestCreatePerlFile2";
+assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile2.pl";
+assert "grep author test/output/TestCreatePerlFile2.pl | grep -q $LOGNAME";
+assert "[ -e test/output/TestCreatePerlFile2.pl ]";
+assert "[ -e test/output/TestCreatePerlFile2.pl ]";
+
 # test overwriting user name
-assert "$mksource -t perl -u overwritten_user_name -o test/output TestCreateOverWrittenUserName"
+assert "$mksource -u overwritten_user_name -o test/output create TestCreateOverWrittenUserName using perl"
 assert "grep -q overwritten_user_name test/output/TestCreateOverWrittenUserName.pl";
 
 # test force overwriting
-assert "$mksource -t perl -f -u YYY -o test/output TestCreatePerlFile";
+assert "$mksource -f -u YYY -o test/output create TestCreatePerlFile perl";
 assert "grep -q YYY test/output/TestCreatePerlFile.pl";
-assert_false "$mksource -t perl -u ZZZ -o test/output TestCreatePerlFile >/dev/null";
+assert_false "$mksource -u ZZZ -o test/output create TestCreatePerlFile using perl >/dev/null";
 assert_false "grep -q ZZZ test/output/TestCreatePerlFile.pl";
 
 # test multiple source without configuration
 assert "[ -e examples/templates/cpp/@Target@.cpp ]";
 assert "[ -e examples/templates/cpp/@Target@.h ]";
-assert "$mksource -t cpp -o test/output CppMultiple"
+assert "$mksource -o test/output create CppMultiple using cpp"
 assert "grep -q CppMultiple test/output/CppMultiple.cpp";
 assert "grep -q CppMultiple test/output/CppMultiple.h";
 
 # test list function for bash completion
-assert "$mksource --list | grep -q cpp"
-assert "$mksource --list | grep -q perl"
+assert "$mksource list | grep -q cpp"
+assert "$mksource list | grep -q perl"
 
-# test the --show_args for bash completion
-assert "$mksource --show_args | grep -q show_args"; 
-assert "$mksource --show_args | grep -q force"; 
-assert "$mksource --show_args | grep -q template"; 
-assert "$mksource --show_args | grep -q user"; 
-assert "$mksource --show_args | grep -q output"; 
-assert "$mksource --show_args | grep -q help"; 
-assert "$mksource --show_args | grep -q verbose"; 
-assert "$mksource --show_args | grep -q debug"; 
+# test the --showargs for bash completion
+assert "$mksource showargs | grep -q showargs"; 
+assert "$mksource showargs | grep -q force"; 
+assert "$mksource showargs | grep -q template"; 
+assert "$mksource showargs | grep -q user"; 
+assert "$mksource showargs | grep -q output"; 
+assert "$mksource showargs | grep -q help"; 
+assert "$mksource showargs | grep -q verbose"; 
+assert "$mksource showargs | grep -q debug"; 
