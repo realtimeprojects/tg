@@ -1,25 +1,29 @@
 #!/usr/bin/perl
 # {{{1 Header
 ###
-# mksource - generate text and code from templates
+# tg - a sophisticated template generator generates text and code from templates
 #
-# Copyright:
+# Copyright (c) 2011, Claudio Klingler, realtime projects
+# All rights reserved.
 # 
-# (2011) - Claudio Klingler - realtime projects -
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+# 
+# - Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
 #
-# License:
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# HIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
 ###
 
 use Getopt::Long;
@@ -44,10 +48,10 @@ my $V_ISODATE=strftime("%Y-%m-%d", localtime());
 my $USER=$ENV{'LOGNAME'};
 
 my @TMPLDIRECTORIES = (
- "$ENV{HOME}/mksource_templates",
- "$ENV{HOME}/.mksourcetemplates",
- "/usr/local/etc/mksource_templates",
- "/etc/mksource_templates",
+ "$ENV{HOME}/tgtemplates",
+ "$ENV{HOME}/.tgtemplates",
+ "/usr/local/etc/tgtemplates",
+ "/etc/tgtemplates",
 );
 
 my %argssettings = (
@@ -61,25 +65,25 @@ my %argssettings = (
 );
 
 
-# {{{1 mksource interface functions
+# {{{1 tg interface functions
 
-# {{{2 mksource_init
-sub mksource_init()
+# {{{2 tg_init
+sub tg_init()
 {
     GetOptions(%argssettings);
     $TMPLDIR="";
 
     get_config();
 
-    $TMPLDIR=get_mksource_template_dir();
+    $TMPLDIR=get_tg_template_dir();
     debug("TMPLDIR is $TMPLDIR");
 
     $V_SOURCE="cpp";
 
 }
 
-# {{{2 mksource create <targetname> [using] <templatename>
-sub mksource_create()
+# {{{2 tg create <targetname> [using] <templatename>
+sub tg_create()
 {
     my $targetname = shift @ARGV;
     my $template = shift @ARGV;
@@ -95,7 +99,7 @@ sub mksource_create()
        }
     }
 
-    verbose("mksource_create $targetname using $template");
+    verbose("tg_create $targetname using $template");
     my %mapping = get_file_mapping($TMPLDIR, $template);
 
     while (($source, $target) = each(%mapping))
@@ -108,7 +112,7 @@ sub mksource_create()
     }
 }
 
-sub mksource_showargs()
+sub tg_showargs()
 {
     print "create list help showargs version ";
     foreach my $argument ( keys %argssettings )
@@ -121,14 +125,14 @@ sub mksource_showargs()
     exit(0);
 }
 
-sub mksource_list()
+sub tg_list()
 {
     @templates = list_templates();
     print join(" ", @templates);
     exit(0);
 }
 
-mksource_init;
+tg_init;
 
 $COMMAND=shift @ARGV;
 $COMMAND="help" if ($A_HELP);
@@ -138,9 +142,9 @@ debug("command is $COMMAND");
 switch ($COMMAND)
 {
     case /version/  { pod2usage(2) }
-    case /list/     { mksource_list }
-    case /create/   { mksource_create }
-    case /showargs/ { mksource_showargs }
+    case /list/     { tg_list }
+    case /create/   { tg_create }
+    case /showargs/ { tg_showargs }
     case /help/     { pod2usage(1) }
     else            { pod2usage(2) }
 }
@@ -201,12 +205,12 @@ sub error
   exit(1);
 }
 
-# {{{2 get_mksource_template_dir
-sub get_mksource_template_dir
+# {{{2 get_tg_template_dir
+sub get_tg_template_dir
 {
 	# first priority has a environment variable
-    debug("MKSOURCE_TMPLDIR " . $ENV{"MKSOURCE_TMPLDIR"});
-	return $ENV{"MKSOURCE_TMPLDIR"} if (defined($ENV{"MKSOURCE_TMPLDIR"}) && (-d $ENV{"MKSOURCE_TMPLDIR"}));
+    debug("TG_TMPLDIR " . $ENV{"TG_TMPLDIR"});
+	return $ENV{"TG_TMPLDIR"} if (defined($ENV{"TG_TMPLDIR"}) && (-d $ENV{"TG_TMPLDIR"}));
 
 	# next priority has a configuration entry
 	debug("checking template dir $TMPLDIR");
@@ -224,23 +228,23 @@ sub get_mksource_template_dir
 		return $dir if (-d $dir);
 	}
 
-	error("could not find template directory! see mksource --help for details");
+	error("could not find template directory! see tg --help for details");
 }
 
-# The get_config() function will return the %MKSOURCE_CONFIG
-# hash that contains als relevant configuration settings of mksource. 
+# The get_config() function will return the %TG_CONFIG
+# hash that contains als relevant configuration settings of tg. 
 # {{{2 get_config()
 sub get_config
 {
     debug("reading configuration...");
-    if (-e "$ENV{HOME}/.mksourceconfig")
+    if (-e "$ENV{HOME}/.tgconfig")
     {
-        read_config("$ENV{HOME}/.mksourceconfig");
+        read_config("$ENV{HOME}/.tgconfig");
         debug("TMPLDIR=$TMPLDIR");
     }
     else
     {
-        debug(".mksourceconfig not found");
+        debug(".tgconfig not found");
     }
 }
 
@@ -305,11 +309,11 @@ sub list_templates_in_directory($)
 }
 
 
-# if no template configuration has been found, mksource
+# if no template configuration has been found, tg
 # checks whether a $TMPLDIR/<template_name> subdirectory
 # exists containing template files to convert.
 #
-# mksource does the substitution on every template file name
+# tg does the substitution on every template file name
 # itself and on the file content. I.e. a file named
 # perl/@Target@.pl in $TMPLDIR will be converted to TargetName.pl
 # in the output directory.
@@ -342,9 +346,9 @@ __END__
 
 =head1 SYNOPSIS
 
-mksource v0.0.3 - generate source files from templates
+tg v0.0.4INWORK - generate source files from templates
 
-mksource <options> [CMD]
+tg <options> [CMD]
 
 
 =head1 OPTIONS
@@ -353,7 +357,7 @@ mksource <options> [CMD]
 
   --template _string_
   -t _string_          Uses _string_ as template. This parameter is optional.
-                       mksource uses the default template (cpp) if it is not set.
+                       tg uses the default template (cpp) if it is not set.
   --user _string_
   -u _string_          Uses _string_ as user name replacement instead of the
                        "LOGNAME" environment variable.
@@ -371,7 +375,7 @@ mksource <options> [CMD]
 
   --list               List the available templates
 
-mksource allows you to generate ready-to-use text files from predefined templates. During generation of the files, mksource will automatically replace predefined placeholders in the template by actual values, e.g. mksource replaces every occurence of @Target@ in the template by the name of the target.
+tg allows you to generate ready-to-use text files from predefined templates. During generation of the files, tg will automatically replace predefined placeholders in the template by actual values, e.g. tg replaces every occurence of @Target@ in the template by the name of the target.
 
 Commands:
 
@@ -379,12 +383,12 @@ Commands:
 
                 Example:
 
-                  mksource -t cpp create MyClass
-                  mksource create MyClass using cpp
+                  tg -t cpp create MyClass
+                  tg create MyClass using cpp
 
                 This commands are identical and generate the MyClass.cpp and MyClass.h files from it's template.
 
-                mksource will not overwrite existing files. Force overwriting with the -t argument.
+                tg will not overwrite existing files. Force overwriting with the -t argument.
    
     list        list available templates
 
@@ -394,7 +398,7 @@ Commands:
 
 Substitutions:
 
-    mksource replaces the following tags by concrete values:
+    tg replaces the following tags by concrete values:
 
       @Target@    The target name (supplied as [TARGET] in command line)
       @Year@      The current 4-digit year (e.g. 2011)
@@ -404,22 +408,22 @@ Substitutions:
 
 Template locations:
 
-    The template directory is determined in the following order. On every step, mksource
-    checks whether the referenced directory exists. If yes, mksource uses this directory
+    The template directory is determined in the following order. On every step, tg
+    checks whether the referenced directory exists. If yes, tg uses this directory
     as TMPLDIR. If not, the next step is executed:
 
     1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
     2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
-    3. Use the directory ~/etc/mksource_templates.
-    4. Use the directory /user/local/etc/mksource_directories
-    5. Use the directory /etc/mksource_templates
+    3. Use the directory ~/etc/tg_templates.
+    4. Use the directory /user/local/etc/tg_directories
+    5. Use the directory /etc/tg_templates
 
-The ~/.mksourceconfig
+The ~/.tgconfig
 
-    The ~/.mksourceconfig is read on every startup and may contain configuration settings.
+    The ~/.tgconfig is read on every startup and may contain configuration settings.
 
-     # will read the templates from ~/.mksource_templates
-     TMPLDIR = ~/.mksource_templates
+     # will read the templates from ~/.tgtemplates
+     TMPLDIR = ~/.tgtemplates
 
 Template configuration:
 
@@ -432,12 +436,12 @@ Template configuration:
 
     Example:
 
-    Assuming you have a ~/etc/mksource_templates directory containing
+    Assuming you have a ~/etc/tgtemplates directory containing
 
         cpp/@Target@.cpp
         cpp/@Target@.h
 
-    templates file, mksource will generate
+    templates file, tg will generate
 
         MyClass.cpp
         MyClass.h
@@ -446,10 +450,10 @@ Template configuration:
 
 Bash completion:
 
-    Source the mksource_completion.sh in the mksource installation directory
-    to activate bash completion. Ensure that mksource is in your $PATH directory.
+    Source the tg_completion.sh in the tg installation directory
+    to activate bash completion. Ensure that tg is in your $PATH directory.
 
-    mksource will automatically complete all command line options. Furthermore,
-    mksource will complete the --template argument with the list of available
-    arguments. See 'mksource list'.
+    tg will automatically complete all command line options. Furthermore,
+    tg will complete the --template argument with the list of available
+    arguments. See 'tg list'.
 

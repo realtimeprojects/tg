@@ -1,8 +1,8 @@
-=== mksource - create code and text files from templates
+== tg - create code and text files from templates
 
-mksource is a tool for creating code and text files from predefined templates.
+tg is a tool for creating code and text files from predefined templates.
 
-Have a look on mksource documentation for details.
+Have a look on tg documentation for details.
 
-Or try ./mksource -h for a short help.
+Or try ./tg -h for a short help.
 
