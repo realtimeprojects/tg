@@ -110,7 +110,7 @@ sub mksource_create()
 
 sub mksource_showargs()
 {
-    print "create list help showargs using ";
+    print "create list help showargs version ";
     foreach my $argument ( keys %argssettings )
     {
         $argument =~ s/\|.*//;
