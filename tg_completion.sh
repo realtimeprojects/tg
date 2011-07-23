@@ -1,6 +1,6 @@
 #!/bin/bash
 
-_mksource_completion()
+_tg_completion()
 {
     local cur prev opts
     COMPREPLY=()
@@ -22,5 +22,5 @@ _mksource_completion()
     fi
 }
 
-complete -F _mksource_completion mksource;
+complete -F _tg_completion tg;
 
