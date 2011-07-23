@@ -6,11 +6,11 @@ _mksource_completion()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="$(mksource showargs)"
+    opts="$(tg showargs)"
 
     case "${prev}" in
         using|-t|--template)
-            tmpls=$(mksource list)
+            tmpls=$(tg list)
             COMPREPLY=( $(compgen -W "${tmpls}" -- ${cur}) )
             return 0
             ;;
