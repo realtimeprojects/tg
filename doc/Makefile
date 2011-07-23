@@ -3,7 +3,7 @@
 # for now: build main.cpp.
 all: tgdefinition
 
-tgdefinition: tgdefinition.html
+tgdefinition: tgdefinition.html latest.html
     
 %.pdf: %.asciidoc
 	a2x -f pdf $*.asciidoc

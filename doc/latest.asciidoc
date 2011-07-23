@@ -1,0 +1,38 @@
+Main Header
+===========
+:Author:    Claudio Klingler
+:Email:     ck@realtime-projects.com
+:Date:      2011-07-23
+
+Author: {author}
+
+Creation Date: {date}
+
+== Latest news
+
+*2011-07-23* The new tg specification is available under https://github.com/realtimeprojects/tg/tree/master/doc/tgdefinition.asciidoc
+
+*2011-07-23* A new branch is published named /branches/v0.2.0 which contains the ongoing public work on version
+'v0.2.0'.
+
+== This document's templates
+
+=== Level2
+==== Level3
+===== Level4
+.Optional Titel
+NOTE: This is a note (delte line for simple title)
+
+.Optional Titel
+TIP: This is a tip
+
+.Optional Titel
+Warning: Be careful!
+
+ Literal paragraph
+
+[source, c++]
+for (int ii = 0; ii < 100; ii++)
+{
+    printf("%d\n", ii);
+} 
