@@ -1,0 +1,459 @@
+#!/usr/bin/perl
+# {{{1 Header
+###
+# tg - a sophisticated template generator generates text and code from templates
+#
+# Copyright (c) 2011, Claudio Klingler, realtime projects
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+# 
+# - Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation and/or
+#   other materials provided with the distribution.
+#
+# HIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+###
+
+use Getopt::Long;
+use Pod::Usage;
+use Switch;
+use POSIX qw/strftime/;
+
+# {{{1 Argument evaluation
+
+my $TMPLNAME = '';
+my $A_VERBOSE = '';
+my $A_HELP = '';
+my $OUTDIR = '.';
+my $A_DEBUG = '';
+my $A_FORCE_OVERWRITE = '';
+my $M_LIST = '';
+my $M_SHOWARGS = '';
+
+
+my $V_YEAR=strftime("%Y", localtime());
+my $V_ISODATE=strftime("%Y-%m-%d", localtime());
+my $USER=$ENV{'LOGNAME'};
+
+my @TMPLDIRECTORIES = (
+ "$ENV{HOME}/tgtemplates",
+ "$ENV{HOME}/.tgtemplates",
+ "/usr/local/etc/tgtemplates",
+ "/etc/tgtemplates",
+);
+
+my %argssettings = (
+  'template|t=s' => \$TMPLNAME,
+  'help|h|?'     => \$A_HELP,
+  'verbose|v'    => \$A_VERBOSE,
+  'output|o=s'   => \$OUTDIR,
+  'user|u=s'     => \$USER,
+  'debug|d'      => \$A_DEBUG,
+  'force|f'      => \$A_FORCE_OVERWRITE,
+);
+
+
+# {{{1 tg interface functions
+
+# {{{2 tg_init
+sub tg_init()
+{
+    GetOptions(%argssettings);
+    $TMPLDIR="";
+
+    get_config();
+
+    $TMPLDIR=get_tg_template_dir();
+    debug("TMPLDIR is $TMPLDIR");
+
+    $V_SOURCE="cpp";
+
+}
+
+# {{{2 tg create <targetname> [using] <templatename>
+sub tg_create()
+{
+    my $targetname = shift @ARGV;
+    my $template = shift @ARGV;
+    $template = $TMPLNAME if (! $template);
+
+    if ($template =~ /using/)
+    {
+       $template = shift @ARGV;
+       if ($TMPLNAME ne "")
+       {
+           error("ambigious -t in combination with using");
+           return 1;
+       }
+    }
+
+    verbose("tg_create $targetname using $template");
+    my %mapping = get_file_mapping($TMPLDIR, $template);
+
+    while (($source, $target) = each(%mapping))
+    {
+        debug("target before: $target");
+        $target=do_substitution($target, $targetname);
+        debug("target after: $target");
+        verbose("generating $target from $source...");
+        gen_source("$target", "$source", $targetname);
+    }
+}
+
+sub tg_showargs()
+{
+    print "create list help showargs version ";
+    foreach my $argument ( keys %argssettings )
+    {
+        $argument =~ s/\|.*//;
+        print "--$argument ";
+    }
+    print "\n";
+    
+    exit(0);
+}
+
+sub tg_list()
+{
+    @templates = list_templates();
+    print join(" ", @templates);
+    exit(0);
+}
+
+tg_init;
+
+$COMMAND=shift @ARGV;
+$COMMAND="help" if ($A_HELP);
+
+debug("command is $COMMAND");
+
+switch ($COMMAND)
+{
+    case /version/  { pod2usage(2) }
+    case /list/     { tg_list }
+    case /create/   { tg_create }
+    case /showargs/ { tg_showargs }
+    case /help/     { pod2usage(1) }
+    else            { pod2usage(2) }
+}
+
+# {{{1 FUNCTIONS
+
+# {{{2 gen_source(target, source) - generate target file from source
+sub gen_source
+{
+  my $target = shift;
+  my $source = shift;
+  my $targetname = shift;
+
+  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target" && !$A_FORCE_OVERWRITE);
+  open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
+  open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
+
+  while (<SFILE>)
+  {
+    $_ = do_substitution($_, $targetname);
+    print TFILE $_;
+  }
+
+  close(TFILE);
+  close(SFILE);
+}
+
+sub do_substitution
+{
+    my $what = shift;
+    my $target = shift;
+    $what =~ s/\@Target\@/$target/g;
+    $what =~ s/\@Year\@/$V_YEAR/g;
+    $what =~ s/\@IsoDate\@/$V_ISODATE/g;
+    $what =~ s/\@User\@/$USER/g;
+    $what =~ s/\@HeaderDir\@/$A_TARGET_DIR/g;
+    return $what;
+}
+
+# {{{2 debug(message) - prints out _message_ as debug message
+sub debug
+{
+  return if (!$A_DEBUG);
+  print "@_\n";
+}
+
+# {{{2 verbose(message) - prints out _message_ if verbose is activated
+sub verbose
+{
+  return if (!$A_VERBOSE);
+  print "@_\n";
+}
+
+# {{{2 error(message) - prints out the _message_ and terminates the script
+sub error
+{
+  print "ERROR: @_\n";
+  exit(1);
+}
+
+# {{{2 get_tg_template_dir
+sub get_tg_template_dir
+{
+	# first priority has a environment variable
+    debug("TG_TMPLDIR " . $ENV{"TG_TMPLDIR"});
+	return $ENV{"TG_TMPLDIR"} if (defined($ENV{"TG_TMPLDIR"}) && (-d $ENV{"TG_TMPLDIR"}));
+
+	# next priority has a configuration entry
+	debug("checking template dir $TMPLDIR");
+
+	if (defined($TMPLDIR) && -e "$TMPLDIR")
+	{
+		debug("$TMPLDIR does exist");
+		return $TMPLDIR;
+	}
+
+	# return the directory below if this directory exists
+	foreach $dir (@TMPLDIRECTORIES)
+	{
+		debug("checking template directory $dir");
+		return $dir if (-d $dir);
+	}
+
+	error("could not find template directory! see tg --help for details");
+}
+
+# The get_config() function will return the %TG_CONFIG
+# hash that contains als relevant configuration settings of tg. 
+# {{{2 get_config()
+sub get_config
+{
+    debug("reading configuration...");
+    if (-e "$ENV{HOME}/.tgconfig")
+    {
+        read_config("$ENV{HOME}/.tgconfig");
+        debug("TMPLDIR=$TMPLDIR");
+    }
+    else
+    {
+        debug(".tgconfig not found");
+    }
+}
+
+# {{{2 read_config($filename)
+sub read_config($)
+{
+    my $p_file = shift;
+    debug("reading $p_file");
+    open(CFGFILE, $p_file);
+    while (<CFGFILE>)
+    {
+        debug("checking $_");
+        if (/TMPLDIR\s*=\s*(.*)/)
+        {
+            $TMPLDIR=$1;
+            debug("setting TMPLDIR to '$TMPLDIR' (source=$p_file)");
+        }
+    }
+}
+
+# {{{2 assert($expression) - aborts program if $expression is false
+sub assert($)
+{
+    my $expression=shift;
+    if (! $expression)
+    {
+        error("ASSERT failed! '$expression'");
+    }
+}
+
+# {{{1 work functions
+
+# Shows a list of all available templates.
+# {{{2 list_templates - list all available templatex
+sub list_templates 
+{
+    return list_templates_in_directory($TMPLDIR);
+}
+
+# {{{1 list_templates($directory) - find templates in $directory
+#
+# @returns undef if directory does not exist.
+sub list_templates_in_directory($)
+{
+    my $directory = shift;
+    my @templates = ();
+
+    debug("list_templates($directory)");
+
+    # check if directory name under $TMPLDIR exists    
+    return undef if (!(-d $directory));
+
+    foreach $filename (<$directory/*>)
+    {
+        next if (! -d $filename);
+        $filename=~s/$directory\///;
+        debug("found template $filename");
+        push(@templates, $filename);
+    }
+
+    return @templates;
+}
+
+
+# if no template configuration has been found, tg
+# checks whether a $TMPLDIR/<template_name> subdirectory
+# exists containing template files to convert.
+#
+# tg does the substitution on every template file name
+# itself and on the file content. I.e. a file named
+# perl/@Target@.pl in $TMPLDIR will be converted to TargetName.pl
+# in the output directory.
+# {{{1 get_file_mapping($template_dir, $template_directory)
+sub get_file_mapping ($$)
+{
+    my $template_dir = shift;
+    my $template_name = shift;
+    my %mapping;
+   
+    # check if directory name under $TMPLDIR exists    
+    error("no template definition found") if (!(-d "$template_dir/$template_name"));
+
+    foreach $filename (<$template_dir/$template_name/*>)
+    {
+        next if (-d $filename);
+        debug("found template file $filename");
+        $tmplfile = $targetfile = $filename;
+        $tmplfile =~ s/$template_dir\///;
+        $targetfile =~ s/$template_dir\/$template_name\///;
+        debug("adding template file $tmplfile with target $targetfile");
+        $mapping{$tmplfile} = $targetfile;
+    }
+    return %mapping;
+};
+
+# {{{1 Documentation
+
+__END__
+
+=head1 SYNOPSIS
+
+tg v0.1.0 - generate source files from templates
+
+tg <options> [CMD]
+
+
+=head1 OPTIONS
+
+  [TARGET]             Name of the target
+
+  --template _string_
+  -t _string_          Uses _string_ as template. This parameter is optional.
+                       tg uses the default template (cpp) if it is not set.
+  --user _string_
+  -u _string_          Uses _string_ as user name replacement instead of the
+                       "LOGNAME" environment variable.
+  --force
+  -f                   Overwrite existing files in output directory
+
+  --verbose
+  -v                   Enables verbose output
+  
+  --debug
+  -d                   Enables debug output
+
+  --help
+  -h                   Shows this help
+
+  --list               List the available templates
+
+tg allows you to generate ready-to-use text files from predefined templates. During generation of the files, tg will automatically replace predefined placeholders in the template by actual values, e.g. tg replaces every occurence of @Target@ in the template by the name of the target.
+
+Commands:
+
+    create      create your text file from the template
+
+                Example:
+
+                  tg -t cpp create MyClass
+                  tg create MyClass using cpp
+
+                This commands are identical and generate the MyClass.cpp and MyClass.h files from it's template.
+
+                tg will not overwrite existing files. Force overwriting with the -t argument.
+   
+    list        list available templates
+
+    showargs    show a list of vailable arguments (for bash completion)
+
+    help        show this help
+
+Substitutions:
+
+    tg replaces the following tags by concrete values:
+
+      @Target@    The target name (supplied as [TARGET] in command line)
+      @Year@      The current 4-digit year (e.g. 2011)
+      @IsoDate@   The current date in ISO8601 format (e.g. 2011-04-22)
+      @HeaderDir@ The relative directory to which the header file will be written
+      @User@      The user name (LOGNAME environment variable)
+
+Template locations:
+
+    The template directory is determined in the following order. On every step, tg
+    checks whether the referenced directory exists. If yes, tg uses this directory
+    as TMPLDIR. If not, the next step is executed:
+
+    1. Check if a TMPLDIR environment variable is set. If yes, use the string as TMPLDIR.
+    2. Check if a TMPLDIR configuration variable is set. If yes, use the string as TMPLDIR.
+    3. Use the directory ~/etc/tg_templates.
+    4. Use the directory /user/local/etc/tg_directories
+    5. Use the directory /etc/tg_templates
+
+The ~/.tgconfig
+
+    The ~/.tgconfig is read on every startup and may contain configuration settings.
+
+     # will read the templates from ~/.tgtemplates
+     TMPLDIR = ~/.tgtemplates
+
+Template configuration:
+
+    Mksource will try to find the $TMPLDIR/<template_name> directory and 
+    create source files for each template file found in this directory. 
+      
+    The file name of the template files are subsituted according the substitution 
+    rules, i.e. a file named @Target@.cpp in the template directory will 
+    result in a <target_name>.cpp file in the output directory. 
+
+    Example:
+
+    Assuming you have a ~/etc/tgtemplates directory containing
+
+        cpp/@Target@.cpp
+        cpp/@Target@.h
+
+    templates file, tg will generate
+
+        MyClass.cpp
+        MyClass.h
+
+    files in the output directory.
+
+Bash completion:
+
+    Source the tg_completion.sh in the tg installation directory
+    to activate bash completion. Ensure that tg is in your $PATH directory.
+
+    tg will automatically complete all command line options. Furthermore,
+    tg will complete the --template argument with the list of available
+    arguments. See 'tg list'.
+
