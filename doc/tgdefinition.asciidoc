@@ -1,0 +1,104 @@
+TG Specification
+================
+:Author:    Claudio Klingler
+:Email:     ck@realtime-projects.com
+:Date:      2011-07-23
+
+Author: {author}
+
+Creation Date: {date}
+
+== Definitions
+
+=== Template Directory Reference Specification (TDRS)
+
+A 'Template Directory Reference Specification' specifies a location where +tg+ searches for
+'Template Containers'. The reference specification may either be:
+- a absolute or relative path specification like _../mymksourcetemplates_ or _/opt/etc/mymksourcetemplates_, or
+- a http-URL reference like http://tg.realtime-projects.com/templates
+
+NOTE:   You may place your templates on a simple public http webserver to make them accessable for
+        your team. All your members have to do is to add the http-URL to their 'Template Path'
+
+STATUS: Specification
+
+== Template Container (TCNT)
+
+A 'Template Container' is a directory that holds any number of 'Blueprint Files'. +tg+ will create a template
+for every Blueprint File within a Template Container.
+
+STATUS: Tested
+
+=== Blueprint File
+
+A 'Blueprint File' is the blueprint from which +tg+ creates your template. A blueprint file is a text file.
+If the Blueprint File contains 'TG Keywords', +tg+ replaces every TG Keyword using the 'Blueprint Replacement Rule'.
+
+If the filename of a Blueprint File itself also consists of TG Keywords, +tg+ will make the 'Blueprint Replacement Rule' also on the
+Filename.
+
+[NOTE]
+This allows to dynamically create the target file names depending on the 'Runtime Settings', e.g. a Blueprint File named
+_@Target@.cpp_ will generate a Template File named _Main.cpp_, if it is called like: +tg -t cpp create Main+
+
+=== TG Keyword
+
++tg+ replaces each 'TG Keyword' in a 'Blueprint File' using the 'Blueprint Replacement Rule'. A TG Keyword is surrounded by
+the +@+ sign, like +@Target@+. See Blueprint Replacement Rule for the available TG Keywords and how they are replaced.
+
+=== Blueprint Replacement Rule
+
+The Blueprint Replacement Rule defines the logic how +tg+ replaces the 'TG Keywords'
+in the 'Blueprint File'. The replacement may be any Runtime Setting, e.g. the name of
+the target the user specifies by the +tg create+ command, like +tg create TargetName+.
+
+Here is the list of the replacements:
+
+*Target*
+
++tg+ replaces the @Target@ pattern by the Target Name that the user specifies on the
+command line.
+
+*IsoDate*
+
++tg+ the @IsoDate@ pattern is replaced by the current date (local time), the date of
+template generation. The date is printed out in ISO-8601 format, like: '2011-07-23'.
+
+*Year*
+
++tg+ replaces the @Year@ pattern with the current year on template generation.
+
+NOTE: This may be used for +(c) @Year@ <Company Name>+ notations in the Blueprint File.
+
+*User*
+
++tg+ replaces the @User@ pattern by the User Name. See the rule how the User Name is
+determined in the 'User Name' definition. At leased, +tg+ uses the environment variable
++LOGNAME+.
+
+=== User Name
+TBD
+
+=== This Document's templates
+
+==== Level3
+
+===== Level4
+.Optional Titel
+NOTE: This is a note (delte line for simple title)
+
+.Optional Titel
+TIP: This is a tip
+
+.Optional Titel
+Warning: Be careful!
+
+ Literal paragraph
+
+[source, c++]
+----
+for (int ii = 0; ii < 100; ii++)
+{
+    printf("%d\n", ii);
+} 
+----
