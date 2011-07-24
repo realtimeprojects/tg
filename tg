@@ -152,6 +152,14 @@ switch ($COMMAND)
 # {{{1 FUNCTIONS
 
 # {{{2 gen_source(target, source) - generate target file from source
+#
+# This function creates a Template File from a Blueprint File using
+# the Blueprint Replacement Rule.
+#
+# If the Template File already exists, the function skips the
+# generation of the template and returns with a value of -1. The
+# Template File is overwritten, if the A_FORCE_OVERWRITE global
+# variable is set to true.
 sub gen_source
 {
   my $target = shift;
@@ -172,6 +180,8 @@ sub gen_source
   close(SFILE);
 }
 
+# {{{2 do_substitution ($what, $target)
+#
 sub do_substitution
 {
     my $what = shift;
@@ -198,7 +208,9 @@ sub verbose
   print "@_\n";
 }
 
-# {{{2 error(message) - prints out the _message_ and terminates the script
+# {{{2 error(message)
+#
+# prints out the _message_ and terminates tg
 sub error
 {
   print "ERROR: @_\n";
