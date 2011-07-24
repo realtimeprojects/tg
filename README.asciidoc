@@ -5,7 +5,7 @@ tg - create code and text files from templates
 
 tg is a tool for creating code and text files from predefined templates.
 
-See link:v0.2.0/doc/tgdefinition.asciidoc[] for the detail specification.
+See link:branches/v0.2.0/doc/tgdefinition.asciidoc[] for the detail specification.
 
 Or try ./tg -h for a short help.
 
