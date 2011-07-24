@@ -142,6 +142,20 @@ NOTE: This may be used for +(c) @Year@ <Company Name>+ notations in the Blueprin
 determined in the 'User Name' definition. At leased, +tg+ uses the environment variable
 +LOGNAME+.
 
+== Template Generation
+
++tg+ generates for each Blueprint File in a Template Container a Template File by using
+the Replacement Rules. Existing files are skipped unless the user forces overwriting, e.g.
+by using the command line switch '-f', like +tg -f -t cpp create Main+. +tg+ prints out a
+warning for every skipped file.
+
+== Exit Code
+
++tg+ returns 0 when it generated the templates successfully, even when it skips the
+generation due to existing template files.
+
+If +tg+ detects an error during execution, +tg+ terminates with a exit status of 1.
+
 === User Name
 TBD
 

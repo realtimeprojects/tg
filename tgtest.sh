@@ -58,6 +58,17 @@ function assert_false
     eval $1 && fail "TEST FAILED..aborting!";
     echo "OK";
 }
+
+### {{{2 testcase $message
+#
+#  prints out the test case
+function testcase
+{
+    echo
+    echo "TEST CASE: ** $1 **"
+    echo
+}
+
 ### {{{1 test helper functions
 
 ### {{{2 function cleanup - cleanup test environment
@@ -68,6 +79,8 @@ function cleanup
     rm -f test/output/TestCreateOverWrittenUserName.pl;
     rm -f test/output/CppMultiple.cpp;
     rm -f test/output/CppMultiple.h;
+    rm -f test/output/SkipExisting.h;
+    rm -f test/output/SkipExisting.cpp;
 }
 
 ### {{{2 function startup - prepare the tests
@@ -82,41 +95,59 @@ export TG_TMPLDIR=./examples/templates
 
 assert "[ -d test/output ]";
 
-# test template creatin with "using"
+testcase " test template creatin with 'using'"
+
 assert "$tg -o test/output create TestCreatePerlFile using perl";
 assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile.pl";
 assert "grep author test/output/TestCreatePerlFile.pl | grep -q $LOGNAME";
 assert "[ -e test/output/TestCreatePerlFile.pl ]";
 
-# test template creation with -t
+testcase " test template creation with -t"
+
 assert "$tg -o test/output -t perl create TestCreatePerlFile2";
 assert "grep -q TestCreatePerlFile test/output/TestCreatePerlFile2.pl";
 assert "grep author test/output/TestCreatePerlFile2.pl | grep -q $LOGNAME";
 assert "[ -e test/output/TestCreatePerlFile2.pl ]";
 assert "[ -e test/output/TestCreatePerlFile2.pl ]";
 
-# test overwriting user name
+testcase "test overwriting user name"
 assert "$tg -u overwritten_user_name -o test/output create TestCreateOverWrittenUserName using perl"
 assert "grep -q overwritten_user_name test/output/TestCreateOverWrittenUserName.pl";
 
-# test force overwriting
+testcase "force overwriting"
 assert "$tg -f -u YYY -o test/output create TestCreatePerlFile perl";
 assert "grep -q YYY test/output/TestCreatePerlFile.pl";
-assert_false "$tg -u ZZZ -o test/output create TestCreatePerlFile using perl >/dev/null";
+assert "$tg -u ZZZ -o test/output create TestCreatePerlFile using perl";
 assert_false "grep -q ZZZ test/output/TestCreatePerlFile.pl";
 
-# test multiple source without configuration
+
+testcase "test multiple source without configuration"
+
 assert "[ -e examples/templates/cpp/@Target@.cpp ]";
 assert "[ -e examples/templates/cpp/@Target@.h ]";
 assert "$tg -o test/output create CppMultiple using cpp"
 assert "grep -q CppMultiple test/output/CppMultiple.cpp";
 assert "grep -q CppMultiple test/output/CppMultiple.h";
 
-# test list function for bash completion
+testcase "just skip existing files"
+
+assert "[ -e examples/templates/cpp/@Target@.cpp ]";
+assert "[ -e examples/templates/cpp/@Target@.h ]";
+assert "$tg -f -u SSS -o test/output create SkipExisting using cpp"
+assert "grep -q SSS test/output/SkipExisting.cpp";
+assert "grep -q SSS test/output/SkipExisting.h";
+assert "rm test/output/SkipExisting.h"
+assert "$tg -u SS2 -o test/output create SkipExisting using cpp"
+assert "grep -q SSS test/output/SkipExisting.cpp";
+assert "grep -q SS2 test/output/SkipExisting.h";
+
+testcase "test list function for bash completion"
+
 assert "$tg list | grep -q cpp"
 assert "$tg list | grep -q perl"
 
-# test the --showargs for bash completion
+testcase "test the --showargs for bash completion"
+
 assert "$tg showargs | grep -q showargs"; 
 assert "$tg showargs | grep -q force"; 
 assert "$tg showargs | grep -q template"; 

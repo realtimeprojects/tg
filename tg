@@ -166,7 +166,12 @@ sub gen_source
   my $source = shift;
   my $targetname = shift;
 
-  error("target $OUTDIR/$target already exists") if (-e "$OUTDIR/$target" && !$A_FORCE_OVERWRITE);
+  if (-e "$OUTDIR/$target" && !$A_FORCE_OVERWRITE)
+  {
+      warning("$OUTDIR/$target already exists, skipping");
+      return -1;
+  }
+
   open(SFILE, "$TMPLDIR/$source") || error("source file not found $TMPLDIR/$source");
   open(TFILE, ">$OUTDIR/$target") || error("could not open $OUTDIR/$target for writing");
 
@@ -215,6 +220,14 @@ sub error
 {
   print "ERROR: @_\n";
   exit(1);
+}
+
+# {{{2 warning (message)
+#
+# prints out the _message_ as a warning
+sub warning
+{
+  print "WARNING: @_\n";
 }
 
 # {{{2 get_tg_template_dir
