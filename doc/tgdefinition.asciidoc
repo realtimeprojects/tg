@@ -79,7 +79,8 @@ TBD - sorry
 === Template Directory Reference Specification (TDRS)
 
 A 'Template Directory Reference Specification' specifies a location where +tg+ searches for
-'Template Containers'. The reference specification may either be:
+'Template Containers'. The reference specification may either be
+
 - a absolute or relative path specification like _../mymksourcetemplates_ or _/opt/etc/mymksourcetemplates_, or
 - a http-URL reference like http://tg.realtime-projects.com/templates. (Link does not work yet, sorry!).
 
@@ -142,14 +143,14 @@ NOTE: This may be used for +(c) @Year@ <Company Name>+ notations in the Blueprin
 determined in the 'User Name' definition. At leased, +tg+ uses the environment variable
 +LOGNAME+.
 
-== Template Generation
+=== Template Generation
 
 +tg+ generates for each Blueprint File in a Template Container a Template File by using
 the Replacement Rules. Existing files are skipped unless the user forces overwriting, e.g.
 by using the command line switch '-f', like +tg -f -t cpp create Main+. +tg+ prints out a
 warning for every skipped file.
 
-== Exit Code
+=== Exit Code
 
 +tg+ returns 0 when it generated the templates successfully, even when it skips the
 generation due to existing template files.
@@ -159,7 +160,7 @@ If +tg+ detects an error during execution, +tg+ terminates with a exit status of
 === User Name
 TBD
 
-=== This Document's templates
+== This Document's templates
 
 ==== Level3
 
