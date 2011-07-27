@@ -5,10 +5,10 @@
 #
 # Copyright (c) 2011, Claudio Klingler, realtime projects
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
-# 
+#
 # - Redistributions of source code must retain the above copyright notice,
 #   this list of conditions and the following disclaimer.
 # - Redistributions in binary form must reproduce the above copyright notice,
@@ -23,7 +23,7 @@
 # DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 ###
 
 use Getopt::Long;
@@ -100,6 +100,7 @@ sub tg_create()
     }
 
     verbose("tg_create $targetname using $template");
+    debug("template directory is $TMPLDIR");
     my %mapping = get_file_mapping($TMPLDIR, $template);
 
     while (($source, $target) = each(%mapping))
@@ -121,7 +122,7 @@ sub tg_showargs()
         print "--$argument ";
     }
     print "\n";
-    
+
     exit(0);
 }
 
@@ -257,7 +258,7 @@ sub get_tg_template_dir
 }
 
 # The get_config() function will return the %TG_CONFIG
-# hash that contains als relevant configuration settings of tg. 
+# hash that contains als relevant configuration settings of tg.
 # {{{2 get_config()
 sub get_config
 {
@@ -304,7 +305,7 @@ sub assert($)
 
 # Shows a list of all available templates.
 # {{{2 list_templates - list all available templatex
-sub list_templates 
+sub list_templates
 {
     return list_templates_in_directory($TMPLDIR);
 }
@@ -319,7 +320,7 @@ sub list_templates_in_directory($)
 
     debug("list_templates($directory)");
 
-    # check if directory name under $TMPLDIR exists    
+    # check if directory name under $TMPLDIR exists
     return undef if (!(-d $directory));
 
     foreach $filename (<$directory/*>)
@@ -347,12 +348,13 @@ sub get_file_mapping ($$)
 {
     my $template_dir = shift;
     my $template_name = shift;
+    my $TemplateContainer = "$template_dir/$template_name";
     my %mapping;
-   
-    # check if directory name under $TMPLDIR exists    
-    error("no template definition found") if (!(-d "$template_dir/$template_name"));
 
-    foreach $filename (<$template_dir/$template_name/*>)
+    # check if directory name under $TMPLDIR exists
+    error("Template Container not found: $TemplateContainer") if (!(-d "$TemplateContainer"));
+
+    foreach $filename (<$TemplateContainer/*>)
     {
         next if (-d $filename);
         debug("found template file $filename");
@@ -362,6 +364,12 @@ sub get_file_mapping ($$)
         debug("adding template file $tmplfile with target $targetfile");
         $mapping{$tmplfile} = $targetfile;
     }
+
+    unless (keys %mapping)
+    {
+      warning("Template Container $TemplateContainer seems to be empty!");
+    }
+
     return %mapping;
 };
 
@@ -391,7 +399,7 @@ tg <options> [CMD]
 
   --verbose
   -v                   Enables verbose output
-  
+
   --debug
   -d                   Enables debug output
 
@@ -414,7 +422,7 @@ Commands:
                 This commands are identical and generate the MyClass.cpp and MyClass.h files from it's template.
 
                 tg will not overwrite existing files. Force overwriting with the -t argument.
-   
+
     list        list available templates
 
     showargs    show a list of vailable arguments (for bash completion)
@@ -452,12 +460,12 @@ The ~/.tgconfig
 
 Template configuration:
 
-    Mksource will try to find the $TMPLDIR/<template_name> directory and 
-    create source files for each template file found in this directory. 
-      
-    The file name of the template files are subsituted according the substitution 
-    rules, i.e. a file named @Target@.cpp in the template directory will 
-    result in a <target_name>.cpp file in the output directory. 
+    Mksource will try to find the $TMPLDIR/<template_name> directory and
+    create source files for each template file found in this directory.
+
+    The file name of the template files are subsituted according the substitution
+    rules, i.e. a file named @Target@.cpp in the template directory will
+    result in a <target_name>.cpp file in the output directory.
 
     Example:
 

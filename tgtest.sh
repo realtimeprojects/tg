@@ -157,3 +157,8 @@ assert "$tg showargs | grep -q help";
 assert "$tg showargs | grep -q verbose"; 
 assert "$tg showargs | grep -q debug"; 
 assert "$tg showargs | grep -q version"; 
+
+testcase "empty container produce a warning"
+
+assert "[ -d examples/templates/EmptyContainer ]";
+assert "$tg -t EmptyContainer -o test/output create EmptyContainer | grep WARNING"
