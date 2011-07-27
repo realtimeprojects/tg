@@ -147,7 +147,7 @@ switch ($COMMAND)
     case /create/   { tg_create }
     case /showargs/ { tg_showargs }
     case /help/     { pod2usage(1) }
-    else            { pod2usage(2) }
+    else            { unshift @ARGV, $COMMAND; tg_create }
 }
 
 # {{{1 FUNCTIONS

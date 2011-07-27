@@ -76,6 +76,14 @@ TBD - sorry
 
 == TG Definitions (TGDEF)
 
+== TG Commands
+
+A 'TG Command' selects which action tg really does:
+
+- +create+ creates the Template Files from the Blueprint File. This is the default command an can be ommited in the command line.
+- +list+ lists all available Template Containers
+- +version+ prints the +tg+ version 
+
 === Template Directory Reference Specification (TDRS)
 
 A 'Template Directory Reference Specification' specifies a location where +tg+ searches for

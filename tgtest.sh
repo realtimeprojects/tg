@@ -81,6 +81,8 @@ function cleanup
     rm -f test/output/CppMultiple.h;
     rm -f test/output/SkipExisting.h;
     rm -f test/output/SkipExisting.cpp;
+    rm -f test/output/CreateDefault.cpp;
+    rm -f test/output/CreateDefault.h;
 }
 
 ### {{{2 function startup - prepare the tests
@@ -158,7 +160,13 @@ assert "$tg showargs | grep -q verbose";
 assert "$tg showargs | grep -q debug"; 
 assert "$tg showargs | grep -q version"; 
 
-testcase "empty container produce a warning"
+testcase "#10 empty container produce a warning"
 
 assert "[ -d examples/templates/EmptyContainer ]";
 assert "$tg -t EmptyContainer -o test/output create EmptyContainer | grep WARNING"
+
+testcase "#11 - make 'create' the default command"
+
+assert "$tg -t cpp -o test/output CreateDefault"
+assert "[ -e test/output/CreateDefault.cpp ]"
+assert "[ -e test/output/CreateDefault.h ]"
