@@ -71,6 +71,7 @@ my %argssettings = (
 sub tg_init()
 {
     GetOptions(%argssettings);
+    pod2usage(1) if ($A_HELP || join(" ", @ARGV) =~ /help/);
     $TMPLDIR="";
 
     get_config();
@@ -136,7 +137,6 @@ sub tg_list()
 tg_init;
 
 $COMMAND=shift @ARGV;
-$COMMAND="help" if ($A_HELP);
 
 debug("command is $COMMAND");
 
@@ -146,7 +146,6 @@ switch ($COMMAND)
     case /list/     { tg_list }
     case /create/   { tg_create }
     case /showargs/ { tg_showargs }
-    case /help/     { pod2usage(1) }
     else            { unshift @ARGV, $COMMAND; tg_create }
 }
 
@@ -254,7 +253,7 @@ sub get_tg_template_dir
 		return $dir if (-d $dir);
 	}
 
-	error("could not find template directory! see tg --help for details");
+    error("could not find template directory! see 'tg help' for details");
 }
 
 # The get_config() function will return the %TG_CONFIG
