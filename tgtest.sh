@@ -34,7 +34,7 @@
 
 tg="$(pwd)/tg";
 
-### {{{1 testing tools
+## {{{1 testing tools
 
 ### {{{2 function fail - abort the script with an error message
 function fail
@@ -165,4 +165,7 @@ testcase "#10 empty container produce a warning"
 assert "[ -d examples/templates/EmptyContainer ]";
 assert "$tg -t EmptyContainer -o test/output create EmptyContainer | grep WARNING"
 
+testcase "#12 - tg forbids creating with empty template"
+
+assert_false "$tg create nonexistenttemplate"
 

@@ -100,8 +100,20 @@ sub tg_create()
        }
     }
 
+    unless ($template)
+    {
+        error("Which template do you want to use?");
+        return 1;
+    }
+
     verbose("tg_create $targetname using $template");
     debug("template directory is $TMPLDIR");
+    unless ( -d "$TMPLDIR/$template" )
+    {
+        error("Template path '$TMPLDIR/$template' seems not to be a directory.");
+        return 1;
+    }
+
     my %mapping = get_file_mapping($TMPLDIR, $template);
 
     while (($source, $target) = each(%mapping))
@@ -114,6 +126,7 @@ sub tg_create()
     }
 }
 
+# {{{2 tg showargs
 sub tg_showargs()
 {
     print "create list help showargs version ";
