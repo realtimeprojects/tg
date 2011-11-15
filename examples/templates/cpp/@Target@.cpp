@@ -5,7 +5,7 @@ Date: @IsoDate@
 
 */
 
-#include "@Target.h@"
+#include "@Target@.h"
 
 @Target@::@Target@ ()
 {
