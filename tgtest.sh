@@ -165,8 +165,4 @@ testcase "#10 empty container produce a warning"
 assert "[ -d examples/templates/EmptyContainer ]";
 assert "$tg -t EmptyContainer -o test/output create EmptyContainer | grep WARNING"
 
-testcase "#11 - make 'create' the default command"
 
-assert "$tg -t cpp -o test/output CreateDefault"
-assert "[ -e test/output/CreateDefault.cpp ]"
-assert "[ -e test/output/CreateDefault.h ]"
